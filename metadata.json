@@ -1,0 +1,5 @@
+{
+  "name": "Threat Poker AI",
+  "description": "A gamified risk analysis tool for development teams. Input a user story, evaluate AI-generated threat options, provide justifications, and receive a consolidated 'Gamecard' for your backlog.",
+  "requestFramePermissions": []
+}
