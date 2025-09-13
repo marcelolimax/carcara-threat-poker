@@ -48,7 +48,10 @@ export const generateThreatOptions = async (userStory: string): Promise<ThreatOp
         },
     });
     
-    const jsonString = response.text().trim();
+    const jsonString = response?.text ? response.text.trim() : null;
+    if (!jsonString) {
+        throw new Error("Empty response from Gemini API for threat options.");
+    }
     const parsedResponse = JSON.parse(jsonString);
 
     if (!parsedResponse.options || !Array.isArray(parsedResponse.options)) {
@@ -127,7 +130,10 @@ export const analyzeThreats = async (
         },
     });
 
-    const jsonString = response.text().trim();
+    const jsonString = response?.text ? response.text.trim() : null;
+    if (!jsonString) {
+        throw new Error("Empty response from Gemini API for threat analysis.");
+    }
     const parsedResponse = JSON.parse(jsonString);
 
     if (!parsedResponse.analyzedOptions || !Array.isArray(parsedResponse.analyzedOptions)) {
