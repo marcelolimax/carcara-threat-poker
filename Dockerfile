@@ -1,32 +1,40 @@
-# Stage 1: Build the React application
-FROM node:20-alpine AS build
-
-# Set the working directory
+# Stage 1: Build frontend
+FROM node:20-alpine AS build-frontend
 WORKDIR /app
-
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
-
-# Install dependencies
+COPY package*.json ./
 RUN npm install
-
-# Copy the rest of the application source code
-COPY . .
-
-# Build the application
+COPY . ./
 RUN npm run build
 
-# Stage 2: Serve the application with Nginx
+# Stage 2: Build backend
+FROM node:20-alpine AS build-backend
+WORKDIR /app
+COPY server/package*.json ./
+RUN npm install
+COPY server/ ./
+RUN npm run build
+
+# Stage 3: Final image
 FROM nginx:stable-alpine
 
-# Copy the custom nginx configuration to listen on port 8080
+# Install nodejs
+RUN apk --no-cache add nodejs
+
+# Copy frontend build
+COPY --from=build-frontend /app/dist /usr/share/nginx/html
+
+# Copy backend build
+RUN mkdir -p /var/www/backend
+COPY --from=build-backend /app/dist /var/www/backend/dist
+COPY --from=build-backend /app/node_modules /var/www/backend/node_modules
+
+# Copy nginx config and startup script
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-# Copy the built files from the build stage
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Expose port 8080 to inform Cloud Run
+# Expose port for Cloud Run
 EXPOSE 8080
 
-# Start Nginx when the container launches
-CMD ["nginx", "-g", "daemon off;"]
+# Start server
+CMD ["/start.sh"]

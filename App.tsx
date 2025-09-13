@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { GameState, ThreatOption, Gamecard, PlayerResponse, AnalyzedThreat } from './types';
-import { generateThreatOptions, analyzeThreats } from './services/geminiService';
 
 import Header from './components/Header';
 import GameSetup from './components/ThemeInput';
@@ -41,12 +40,24 @@ const App: React.FC = () => {
     setPlayerCount(pCount);
     
     try {
-      const options = await generateThreatOptions(story);
-      setThreatOptions(options);
+      const response = await fetch('/api/generate-threat-options', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userStory: story }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate threat options');
+      }
+
+      const data = await response.json();
+      setThreatOptions(data.options);
       setGameState(GameState.VOTING);
     } catch (err) {
       console.error(err);
-      setError('Falha ao gerar opções de ameaça. Verifique a chave da API e tente novamente.');
+      setError('Falha ao gerar opções de ameaça. Verifique o backend e tente novamente.');
       setGameState(GameState.SETUP);
     }
   }, []);
@@ -75,8 +86,20 @@ const App: React.FC = () => {
     if (isLastPlayer) {
       setGameState(GameState.ANALYZING);
       try {
-        const analysis = await analyzeThreats(userStory, threatOptions, updatedResponses);
-        setAnalyzedThreats(analysis);
+        const response = await fetch('/api/analyze-threats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userStory, threatOptions, playerResponses: updatedResponses }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to analyze threats');
+        }
+
+        const data = await response.json();
+        setAnalyzedThreats(data.analyzedOptions);
         setGameState(GameState.DECISION);
       } catch (err) {
         console.error(err);
