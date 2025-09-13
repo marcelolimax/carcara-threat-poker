@@ -59,7 +59,7 @@ Para executar o Carcará Threat Poker em sua máquina local, siga estes passos.
 3.  **Configure suas variáveis de ambiente:**
     Crie um arquivo chamado `.env` na raiz do projeto e adicione sua chave de API do Google Gemini:
     ```env
-    API_KEY=SUA_CHAVE_API_DO_GEMINI
+    GEMINI_API_KEY=SUA_CHAVE_API_DO_GEMINI
     ```
     Substitua `SUA_CHAVE_API_DO_GEMINI` pela chave real que você obteve no Google AI Studio.
 

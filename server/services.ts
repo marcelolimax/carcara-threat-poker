@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ThreatOption, AnalyzedThreat, PlayerResponse } from '../../types';
+import { ThreatOption, AnalyzedThreat, PlayerResponse } from '../types';
 
 if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY environment variable not set");
@@ -48,7 +48,7 @@ export const generateThreatOptions = async (userStory: string): Promise<ThreatOp
         },
     });
     
-    const jsonString = response.text.trim();
+    const jsonString = response.text().trim();
     const parsedResponse = JSON.parse(jsonString);
 
     if (!parsedResponse.options || !Array.isArray(parsedResponse.options)) {
@@ -127,7 +127,7 @@ export const analyzeThreats = async (
         },
     });
 
-    const jsonString = response.text.trim();
+    const jsonString = response.text().trim();
     const parsedResponse = JSON.parse(jsonString);
 
     if (!parsedResponse.analyzedOptions || !Array.isArray(parsedResponse.analyzedOptions)) {

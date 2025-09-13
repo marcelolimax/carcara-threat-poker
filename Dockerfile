@@ -9,9 +9,10 @@ RUN npm run build
 # Stage 2: Build backend
 FROM node:20-alpine AS build-backend
 WORKDIR /app
-COPY server/package*.json ./
+COPY types.ts ./
+COPY server/ ./server/
+WORKDIR /app/server
 RUN npm install
-COPY server/ ./
 RUN npm run build
 
 # Stage 3: Final image
@@ -25,8 +26,8 @@ COPY --from=build-frontend /app/dist /usr/share/nginx/html
 
 # Copy backend build
 RUN mkdir -p /var/www/backend
-COPY --from=build-backend /app/dist /var/www/backend/dist
-COPY --from=build-backend /app/node_modules /var/www/backend/node_modules
+COPY --from=build-backend /app/server/dist /var/www/backend/dist
+COPY --from=build-backend /app/server/node_modules /var/www/backend/node_modules
 
 # Copy nginx config and startup script
 COPY nginx.conf /etc/nginx/conf.d/default.conf
