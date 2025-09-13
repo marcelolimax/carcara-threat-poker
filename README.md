@@ -32,6 +32,44 @@ A interação é dividida em etapas claras, guiando a equipe desde a definição
 
 6.  **Gamecard para o Backlog:** Após a decisão final, a aplicação gera um **"Gamecard"**. Este é um resumo estruturado que contém a tarefa, a ameaça escolhida, a análise da IA e uma ação sugerida. O card é formatado para ser facilmente copiado e colado em ferramentas de gerenciamento de projetos como Jira, Trello ou Azure DevOps.
 
+## 🚀 Executando Localmente
+
+Para executar o Carcará Threat Poker em sua máquina local, siga estes passos.
+
+### Pré-requisitos
+
+*   [Node.js](https://nodejs.org/) (versão 18.x ou superior)
+*   [npm](https://www.npmjs.com/) (geralmente instalado com o Node.js)
+*   Uma chave de API do Google Gemini. Você pode obter uma no [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+### Instalação e Execução
+
+1.  **Clone o repositório:**
+    ```bash
+    # Substitua pela URL correta do seu repositório
+    git clone https://github.com/seu-usuario/carcara-threat-poker.git
+    cd carcara-threat-poker
+    ```
+
+2.  **Instale as dependências:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure suas variáveis de ambiente:**
+    Crie um arquivo chamado `.env` na raiz do projeto e adicione sua chave de API do Google Gemini:
+    ```env
+    API_KEY=SUA_CHAVE_API_DO_GEMINI
+    ```
+    Substitua `SUA_CHAVE_API_DO_GEMINI` pela chave real que você obteve no Google AI Studio.
+
+4.  **Inicie o servidor de desenvolvimento:**
+    ```bash
+    npm run dev
+    ```
+
+5.  Abra seu navegador e acesse o endereço fornecido no terminal (geralmente `http://localhost:5173`).
+
 ## Interação com a IA Generativa (Prompts)
 
 A inteligência do Carcará Threat Poker vem de uma interação de duas fases com a API do Gemini, utilizando dois prompts distintos e bem definidos.
