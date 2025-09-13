@@ -31,6 +31,7 @@ COPY --from=build-backend /app/server/node_modules /var/www/backend/node_modules
 
 # Copy nginx config and startup script
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY .htpasswd /etc/nginx/.htpasswd
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
