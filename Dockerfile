@@ -9,7 +9,7 @@ RUN npm run build
 # Stage 2: Build backend
 FROM node:20-alpine AS build-backend
 WORKDIR /app
-COPY types.ts ./
+COPY types.ts ./server/
 COPY server/ ./server/
 WORKDIR /app/server
 RUN npm install
