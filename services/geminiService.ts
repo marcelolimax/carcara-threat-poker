@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateThreatOptions = async (userStory: string): Promise<ThreatOption[]> => {
     const prompt = `
-    Você é um Mestre de Jogo de "Threat Poker AI", especialista em cibersegurança e na aplicação do framework OWASP SAMM. Seu objetivo é ajudar uma equipe de desenvolvimento a analisar riscos de forma gamificada e educativa.
+    Você é um Mestre de Jogo de "Carcará Theat Poker", especialista em cibersegurança e na aplicação do framework OWASP SAMM. Seu objetivo é ajudar uma equipe de desenvolvimento a analisar riscos de forma gamificada e educativa.
 
     A equipe forneceu a seguinte user story:
     "${userStory}"
