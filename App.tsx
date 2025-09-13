@@ -62,7 +62,7 @@ const App: React.FC = () => {
     }
   }, []);
   
-  const handlePlayerSubmit = useCallback(async () => {
+  const handlePlayerSubmit = useCallback(() => {
     if (!selectedOption || !justification.trim()) {
       setError('Por favor, selecione uma opção e forneça uma justificativa.');
       return;
@@ -74,43 +74,48 @@ const App: React.FC = () => {
       selectedOption,
       justification,
     };
-    const updatedResponses = [...playerResponses, newResponse];
-    setPlayerResponses(updatedResponses);
 
-    // Clear inputs for the next player
-    setSelectedOption(null);
-    setJustification('');
+    // Use the functional form of setState to get the latest state
+    setPlayerResponses(prevResponses => {
+      const updatedResponses = [...prevResponses, newResponse];
+      const isLastPlayer = currentPlayerIndex === playerCount - 1;
 
-    const isLastPlayer = currentPlayerIndex === playerCount - 1;
-
-    if (isLastPlayer) {
-      setGameState(GameState.ANALYZING);
-      try {
-        const response = await fetch('/api/analyze-threats', {
+      if (isLastPlayer) {
+        setGameState(GameState.ANALYZING);
+        fetch('/api/analyze-threats', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userStory, threatOptions, playerResponses: updatedResponses }),
+          body: JSON.stringify({ userStory, allOptions: threatOptions, playerResponses: updatedResponses }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to analyze threats');
+          }
+          return response.json();
+        })
+        .then(data => {
+          setAnalyzedThreats(data.analyzedOptions);
+          setGameState(GameState.DECISION);
+        })
+        .catch(err => {
+          console.error(err);
+          setError('Falha ao analisar as ameaças. Tente novamente.');
+          setGameState(GameState.VOTING);
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to analyze threats');
-        }
-
-        const data = await response.json();
-        setAnalyzedThreats(data.analyzedOptions);
-        setGameState(GameState.DECISION);
-      } catch (err) {
-        console.error(err);
-        setError('Falha ao analisar as ameaças. Tente novamente.');
-        setGameState(GameState.VOTING); // Go back to the voting state if analysis fails
+      } else {
+        setCurrentPlayerIndex(prev => prev + 1);
       }
-    } else {
-      // Move to the next player
-      setCurrentPlayerIndex(prev => prev + 1);
-    }
-  }, [selectedOption, justification, currentPlayerIndex, playerCount, playerResponses, userStory, threatOptions]);
+      
+      return updatedResponses;
+    });
+
+    // Clear inputs for the next turn
+    setSelectedOption(null);
+    setJustification('');
+
+  }, [selectedOption, justification, currentPlayerIndex, playerCount, userStory, threatOptions]);
 
   const handleFinalDecision = (chosenThreat: AnalyzedThreat) => {
     // Construct the final gamecard based on the team's choice
