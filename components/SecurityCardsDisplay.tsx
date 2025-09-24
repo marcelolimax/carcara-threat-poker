@@ -28,8 +28,11 @@ const ConfidenceBadge: React.FC<{ confidence: number }> = ({ confidence }) => {
   else if (confidence >= 0.4) colorClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded border ${colorClass}`}>
-      {percentage}%
+    <span 
+      className={`px-2 py-1 text-xs font-medium rounded border ${colorClass} cursor-help`}
+      title={`Confiança da IA: ${percentage}% - Indica o nível de certeza da IA nesta classificação técnica. Valores baixos podem necessitar revisão manual.`}
+    >
+      📊{percentage}%
     </span>
   );
 };
@@ -71,37 +74,82 @@ const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({
     const selectedCards = cards.filter(card => selectedCardIds.has(card.card_id));
     onSelectCards(selectedCards);
   };
+  
+  const handleSelectAll = () => {
+    if (selectedCardIds.size === cards.length) {
+      // Deselect all
+      setSelectedCardIds(new Set());
+    } else {
+      // Select all
+      setSelectedCardIds(new Set(cards.map(card => card.card_id)));
+    }
+  };
 
-  const copyCardToClipboard = (card: SecurityCard) => {
-    const cardText = `
-🎴 Card de Segurança - Carcará Threat Poker v2
+  const copyCardToClipboard = async (card: SecurityCard) => {
+    const cardText = `🎴 CARD DE SEGURANÇA - Carcará Threat Poker v2
 
-📌 User Story: ${card.user_story}
+═══ INFORMAÇÕES BÁSICAS ═══
+📌 Card ID: ${card.card_id}
+📝 User Story: ${card.user_story}
 ⚠️ Ameaça: ${card.ameaca_titulo}
-📝 Descrição: ${card.descricao_ameaca}
+📖 Descrição: ${card.descricao_ameaca}
 
-🏷️ Classificações:
-• OWASP Top 10: ${card.classificacoes.owasp_top10.categoria} (${Math.round(card.classificacoes.owasp_top10.confianca * 100)}%)
-• CWE: ${card.classificacoes.cwe.id} - ${card.classificacoes.cwe.nome} (${Math.round(card.classificacoes.cwe.confianca * 100)}%)
-• CVSS 4.0: ${card.classificacoes.cvss.severidade} (${card.classificacoes.cvss.pontuacao_base}) - ${card.classificacoes.cvss.vetor}
+═══ CLASSIFICAÇÕES TÉCNICAS ═══
+🏷️ OWASP Top 10: ${card.classificacoes.owasp_top10.categoria} (📊${Math.round(card.classificacoes.owasp_top10.confianca * 100)}% confiança IA)
+🐛 CWE: ${card.classificacoes.cwe.id} - ${card.classificacoes.cwe.nome} (📊${Math.round(card.classificacoes.cwe.confianca * 100)}% confiança IA)
+📊 CVSS 4.0: ${card.classificacoes.cvss.severidade} (${card.classificacoes.cvss.pontuacao_base.toFixed(1)}) - ${card.classificacoes.cvss.vetor} (📊${Math.round(card.classificacoes.cvss.confianca * 100)}% confiança IA)
 
-📊 ASP Score: ${card.asp_score || 'N/A'} (Risco: ${card.insumos_asp.risco.valor}, Esforço: ${card.insumos_asp.esforco.valor})
+═══ PRIORIZAÇÃO ASP ═══
+📊 Score ASP: ${card.asp_score || 0}/100
+📈 Risco: ${card.insumos_asp.risco.valor}/10
+⚡ Esforço: ${card.insumos_asp.esforco.valor}/10
 🚦 Decisão Sprint: ${card.decisao_sprint_sugerida}
 
-✅ Subtarefas:
-${card.subtarefas_sugeridas.map(task => `• ${task}`).join('\n')}
+═══ IMPLEMENTAÇÃO ═══
+✅ SUBTAREFAS:
+${card.subtarefas_sugeridas.map(task => `  • ${task}`).join('\n')}
 
-🔒 Definition of Done - Segurança:
-${card.dod_segurança.map(dod => `• ${dod}`).join('\n')}
+🔒 DEFINITION OF DONE - SEGURANÇA:
+${card.dod_segurança.map(dod => `  • ${dod}`).join('\n')}
 
-📖 Cheat Sheets OWASP:
-${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')}
+═══ RECURSOS E REFERÊNCIAS ═══
+📚 CHEAT SHEETS OWASP:
+${card.cheat_sheets.map(sheet => `  • ${sheet.titulo}: ${sheet.url}`).join('\n')}
 
-💡 Observações: ${card.observacoes}
-    `;
+💡 OBSERVAÇÕES:
+${card.observacoes}
 
-    navigator.clipboard.writeText(cardText.trim());
-    alert(`Card ${card.card_id} copiado para a área de transferência!`);
+═══ METADADOS ═══
+🔖 Versão do Esquema: ${card.versao_esquema}
+⏰ Gerado via Carcará Threat Poker v2
+🤖 Análise baseada em IA (Google Gemini)`;
+
+    try {
+      await navigator.clipboard.writeText(cardText);
+      // Show success feedback with temporary toast
+      const button = document.activeElement as HTMLElement;
+      const originalText = button?.textContent;
+      if (button) {
+        button.textContent = '✓ Copiado!';
+        button.classList.add('bg-emerald-600');
+        button.classList.remove('bg-sky-600/20');
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove('bg-emerald-600');
+          button.classList.add('bg-sky-600/20');
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Fallback: create a textarea and copy manually
+      const textArea = document.createElement('textarea');
+      textArea.value = cardText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert(`Card ${card.card_id} copiado para a área de transferência!`);
+    }
   };
 
   return (
@@ -110,9 +158,20 @@ ${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')
         <h2 className="text-3xl font-bold text-slate-100 mb-2">
           🎴 Cards de Segurança Gerados
         </h2>
-        <p className="text-slate-400">
+        <p className="text-slate-400 mb-4">
           {cards.length} cards ordenados por prioridade ASP (Risco × Esforço)
         </p>
+        <div className="flex items-center justify-center gap-4">
+          <span className="text-sm text-slate-400">
+            {selectedCardIds.size} de {cards.length} selecionados
+          </span>
+          <button
+            onClick={handleSelectAll}
+            className="px-4 py-2 text-sm bg-slate-700/50 text-slate-300 rounded-lg hover:bg-slate-600/50 transition-colors border border-slate-600"
+          >
+            {selectedCardIds.size === cards.length ? '❌ Desselecionar Todos' : '✅ Selecionar Todos'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -129,12 +188,23 @@ ${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedCardIds.has(card.card_id)}
-                    onChange={() => toggleCardSelection(card.card_id)}
-                    className="w-5 h-5 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500 focus:ring-2"
-                  />
+                  <label className="relative flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedCardIds.has(card.card_id)}
+                      onChange={() => toggleCardSelection(card.card_id)}
+                      className="sr-only peer"
+                    />
+                    <div className={`relative w-6 h-6 rounded border-2 transition-all duration-200 flex items-center justify-center ${
+                      selectedCardIds.has(card.card_id) 
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : 'border-slate-500 bg-slate-800 hover:border-indigo-400'
+                    }`}>
+                      {selectedCardIds.has(card.card_id) && (
+                        <span className="text-sm font-bold">✓</span>
+                      )}
+                    </div>
+                  </label>
                   <div>
                     <h3 className="text-lg font-bold text-slate-100">
                       #{index + 1} {card.ameaca_titulo}
@@ -323,10 +393,39 @@ ${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')
         </button>
       </div>
 
-      <div className="mt-6 text-center text-sm text-slate-500">
-        <p>
-          💡 CVSS/CWE/OWASP Top 10 são informativos. O ASP é calculado apenas com os insumos definidos pelo Carcará.
-        </p>
+      <div className="mt-6 text-center space-y-3">
+        <div className="text-sm text-slate-500">
+          <p>
+            💡 CVSS/CWE/OWASP Top 10 são informativos. O ASP é calculado apenas com os insumos definidos pelo Carcará.
+          </p>
+        </div>
+        <div className="bg-slate-800/30 rounded-lg p-4 max-w-4xl mx-auto">
+          <h4 className="text-sm font-semibold text-slate-300 mb-2">🎯 Sobre os Níveis de Confiança</h4>
+          <p className="text-xs text-slate-400 text-left">
+            Os percentuais ao lado das classificações técnicas indicam o <strong>nível de confiança da IA</strong> (0-100%):
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded">80%+</span>
+              <span className="text-slate-400">Alta confiança</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded">60-79%</span>
+              <span className="text-slate-400">Média confiança</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded">40-59%</span>
+              <span className="text-slate-400">Baixa confiança</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-slate-500/20 text-slate-300 border border-slate-500/30 rounded">&lt;40%</span>
+              <span className="text-slate-400">Muito baixa</span>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-3 italic">
+            Níveis baixos de confiança podem indicar necessidade de revisão manual por especialista.
+          </p>
+        </div>
       </div>
     </div>
   );

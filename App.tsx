@@ -230,22 +230,78 @@ const App: React.FC = () => {
   
   const handleSelectCardsForBacklog = useCallback((selectedCards: SecurityCard[]) => {
     // Here you could integrate with external tools like Jira, Trello, etc.
-    // For now, just show a confirmation
     const cardIds = selectedCards.map(card => card.card_id).join(', ');
-    alert(`${selectedCards.length} cards selecionados para o backlog: ${cardIds}`);
     
-    // You could also copy all selected cards to clipboard
-    const allCardsText = selectedCards.map(card => {
-      return `
-🎴 Card: ${card.card_id}
-📌 Story: ${card.user_story}
-⚠️ Ameaça: ${card.ameaca_titulo}
-📊 ASP: ${card.asp_score} (R:${card.insumos_asp.risco.valor} × E:${card.insumos_asp.esforco.valor})
-🚦 Decisão: ${card.decisao_sprint_sugerida}
-      `;
-    }).join('\n---\n');
+    // Create comprehensive cards text for backlog export
+    const allCardsText = selectedCards.map((card, index) => {
+      return `═══════════════════════════════════════════════════
+🎴 CARD DE SEGURANÇA ${index + 1}/${selectedCards.length} - Carcará Threat Poker v2
+═══════════════════════════════════════════════════
+
+📌 CARD ID: ${card.card_id}
+📝 USER STORY: ${card.user_story}
+⚠️ AMEAÇA: ${card.ameaca_titulo}
+📖 DESCRIÇÃO: ${card.descricao_ameaca}
+
+🏷️ CLASSIFICAÇÕES TÉCNICAS:
+• OWASP Top 10: ${card.classificacoes.owasp_top10.categoria} (📊${Math.round(card.classificacoes.owasp_top10.confianca * 100)}% confiança IA)
+• CWE: ${card.classificacoes.cwe.id} - ${card.classificacoes.cwe.nome} (📊${Math.round(card.classificacoes.cwe.confianca * 100)}% confiança IA)
+• CVSS 4.0: ${card.classificacoes.cvss.severidade} (${card.classificacoes.cvss.pontuacao_base.toFixed(1)}) - ${card.classificacoes.cvss.vetor} (📊${Math.round(card.classificacoes.cvss.confianca * 100)}% confiança IA)
+
+📊 PRIORIZAÇÃO ASP:
+• Score ASP: ${card.asp_score || 0}/100
+• Risco: ${card.insumos_asp.risco.valor}/10
+• Esforço: ${card.insumos_asp.esforco.valor}/10
+• Decisão Sprint: ${card.decisao_sprint_sugerida}
+
+✅ SUBTAREFAS DE IMPLEMENTAÇÃO:
+${card.subtarefas_sugeridas.map(task => `• ${task}`).join('\n')}
+
+🔒 DEFINITION OF DONE - SEGURANÇA:
+${card.dod_segurança.map(dod => `• ${dod}`).join('\n')}
+
+📚 RECURSOS OWASP:
+${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')}
+
+💡 OBSERVAÇÕES:
+${card.observacoes}
+
+🔖 METADADOS:
+• Versão do Esquema: ${card.versao_esquema}
+• Gerado por: Carcará Threat Poker v2
+• IA: Google Gemini`;
+    }).join('\n\n');
     
-    navigator.clipboard.writeText(allCardsText.trim());
+    const summaryText = `
+
+═══════════════════════════════════════════════════
+📋 RESUMO DA SELEÇÃO PARA BACKLOG
+═══════════════════════════════════════════════════
+
+📊 Total de cards selecionados: ${selectedCards.length}
+🔗 IDs dos cards: ${cardIds}
+⏰ Data/Hora: ${new Date().toLocaleString('pt-BR')}
+🤖 Ferramenta: Carcará Threat Poker v2
+
+🎯 Cards ordenados por prioridade ASP (maior = mais crítico):
+${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_score}/100 - ${card.ameaca_titulo}`).join('\n')}
+`;
+    
+    const finalText = allCardsText + summaryText;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(finalText).then(() => {
+      alert(`✅ ${selectedCards.length} cards copiados para área de transferência!\n\n📋 Conteúdo inclui:\n• Informações completas dos cards\n• Classificações técnicas (OWASP/CWE/CVSS)\n• Subtarefas e DoD de segurança\n• Links para Cheat Sheets\n• Resumo da seleção\n\nPronto para colar no seu backlog! 🚀`);
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = finalText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert(`✅ ${selectedCards.length} cards copiados! (método alternativo)`);
+    });
   }, []);
 
   const handlePlayAgain = () => {
