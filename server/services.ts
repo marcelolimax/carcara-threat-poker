@@ -191,17 +191,32 @@ Contexto de Votação da Equipe:
 - Esta análise é para a opção ${threatOption.id}${votingData.selectedOptionId === threatOption.id ? ' (ESCOLHIDA PELA EQUIPE)' : ' (não escolhida pela equipe)'}` : '';
     
     const prompt = `
-Você é consultora de segurança. Para a opção apresentada, produza a análise seguindo estritamente o schema.
-Regras:
-- OWASP Top 10 e CWE como hipóteses com "confianca" (0–1).
-- CVSS informativo (4.0): vetor, pontuacao_base, severidade, e "confianca".
-- 2+ OWASP Cheat Sheets oficiais (título + URL).
-- NÃO calcule ASP. Preencha SOMENTE insumos_asp: risco (1–10) e esforço (1–10) nas escalas do Carcará.
-- Subtarefas acionáveis; DoD objetivo.
-- Saída: JSON estrito conforme schema.
+Você é consultora especialista em segurança. Analise a ameaça e produza um Card de Segurança completo.
+
+REGRAS OBRIGATÓRIAS:
+1. OWASP Top 10: escolha a categoria mais adequada com confiança 0.6-0.9
+2. CWE: identifique o CWE específico com confiança 0.6-0.9  
+3. CVSS 4.0: calcule o vetor completo com confiança 0.6-0.9
+4. Cheat Sheets: forneça 2-3 links oficiais OWASP relevantes
+5. Subtarefas: liste 3-5 ações técnicas específicas e implementáveis
+6. DoD Segurança: defina 3-4 critérios objetivos e testáveis
+7. Insumos ASP: risco (1-10) e esforço (1-10) - NÃO calcule o score final
+8. Observações: sempre inclua a frase padrão sobre CVSS/CWE serem informativos
+
+EXEMPLO de subtarefas válidas:
+- "Implementar validação de entrada com sanitização"
+- "Configurar rate limiting no endpoint /api/login"
+- "Adicionar logs de auditoria para operações sensíveis"
+
+EXEMPLO de DoD válido:
+- "Teste de penetração não encontra vulnerabilidade"
+- "Scanner de código aprovado sem alertas críticos"
+- "Code review confirma implementação das validações"
 
 User Story: "${userStory}"
-Opção: "${threatOption.id}: ${threatOption.description}"${votingContext}
+Ameaça: "${threatOption.id}: ${threatOption.description}"${votingContext}
+
+Resposta obrigatória em JSON estrito conforme schema:
     `;
 
     const response = await ai.models.generateContent({
