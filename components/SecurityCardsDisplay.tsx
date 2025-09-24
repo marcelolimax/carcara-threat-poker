@@ -86,6 +86,8 @@ const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({
   };
 
   const copyCardToClipboard = async (card: SecurityCard) => {
+    console.log('Copiando card:', card.card_id);
+    
     const cardText = `🎴 CARD DE SEGURANÇA - Carcará Threat Poker v2
 
 ═══ INFORMAÇÕES BÁSICAS ═══
@@ -107,48 +109,86 @@ const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({
 
 ═══ IMPLEMENTAÇÃO ═══
 ✅ SUBTAREFAS:
-${card.subtarefas_sugeridas.map(task => `  • ${task}`).join('\n')}
+${card.subtarefas_sugeridas?.map(task => `  • ${task}`)?.join('\n') || 'Nenhuma subtarefa disponível'}
 
 🔒 DEFINITION OF DONE - SEGURANÇA:
-${card.dod_segurança.map(dod => `  • ${dod}`).join('\n')}
+${card.dod_segurança?.map(dod => `  • ${dod}`)?.join('\n') || 'Nenhum DoD disponível'}
 
 ═══ RECURSOS E REFERÊNCIAS ═══
 📚 CHEAT SHEETS OWASP:
-${card.cheat_sheets.map(sheet => `  • ${sheet.titulo}: ${sheet.url}`).join('\n')}
+${card.cheat_sheets?.map(sheet => `  • ${sheet.titulo}: ${sheet.url}`)?.join('\n') || 'Nenhum cheat sheet disponível'}
 
 💡 OBSERVAÇÕES:
-${card.observacoes}
+${card.observacoes || 'Nenhuma observação'}
 
 ═══ METADADOS ═══
-🔖 Versão do Esquema: ${card.versao_esquema}
+🔖 Versão do Esquema: ${card.versao_esquema || 'N/A'}
 ⏰ Gerado via Carcará Threat Poker v2
 🤖 Análise baseada em IA (Google Gemini)`;
 
+    console.log('Texto a ser copiado:', cardText.substring(0, 200) + '...');
+    
     try {
-      await navigator.clipboard.writeText(cardText);
-      // Show success feedback with temporary toast
-      const button = document.activeElement as HTMLElement;
-      const originalText = button?.textContent;
-      if (button) {
-        button.textContent = '✓ Copiado!';
-        button.classList.add('bg-emerald-600');
-        button.classList.remove('bg-sky-600/20');
-        setTimeout(() => {
-          button.textContent = originalText;
-          button.classList.remove('bg-emerald-600');
-          button.classList.add('bg-sky-600/20');
-        }, 2000);
+      // Tentar usar a API moderna primeiro
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(cardText);
+        console.log('Copiado com navigator.clipboard');
+        
+        // Feedback visual
+        const button = document.activeElement as HTMLElement;
+        const originalText = button?.textContent || '📋 Copiar';
+        if (button) {
+          button.textContent = '✓ Copiado!';
+          button.style.backgroundColor = '#10b981';
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.style.backgroundColor = '';
+          }, 2000);
+        }
+        
+        // Alerta de sucesso
+        alert(`✅ Card ${card.card_id} copiado com sucesso!`);
+        return;
       }
     } catch (err) {
-      console.error('Failed to copy:', err);
-      // Fallback: create a textarea and copy manually
+      console.error('Erro ao copiar com navigator.clipboard:', err);
+    }
+    
+    // Fallback para método antigo
+    try {
       const textArea = document.createElement('textarea');
       textArea.value = cardText;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
       document.body.appendChild(textArea);
+      textArea.focus();
       textArea.select();
-      document.execCommand('copy');
+      
+      const successful = document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert(`Card ${card.card_id} copiado para a área de transferência!`);
+      
+      if (successful) {
+        console.log('Copiado com execCommand');
+        alert(`✅ Card ${card.card_id} copiado com sucesso! (método alternativo)`);
+        
+        // Feedback visual
+        const button = document.activeElement as HTMLElement;
+        const originalText = button?.textContent || '📋 Copiar';
+        if (button) {
+          button.textContent = '✓ Copiado!';
+          button.style.backgroundColor = '#10b981';
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.style.backgroundColor = '';
+          }, 2000);
+        }
+      } else {
+        throw new Error('execCommand falhou');
+      }
+    } catch (fallbackErr) {
+      console.error('Erro no fallback:', fallbackErr);
+      alert(`❌ Erro ao copiar card. Tente novamente ou copie manualmente.\n\nCard ID: ${card.card_id}`);
     }
   };
 
@@ -214,15 +254,17 @@ ${card.observacoes}
                 </div>
                 <div className="flex items-center gap-2">
                   <AspScoreBadge score={card.asp_score || 0} />
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                  <div className={`px-3 py-1 text-sm font-medium rounded-full border ${
                     card.decisao_sprint_sugerida === 'Selecionar' 
-                      ? 'bg-emerald-600/20 text-emerald-300'
+                      ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30'
                       : card.decisao_sprint_sugerida === 'Adiar'
-                      ? 'bg-orange-600/20 text-orange-300'  
-                      : 'bg-blue-600/20 text-blue-300'
-                  }`}>
-                    {card.decisao_sprint_sugerida}
-                  </span>
+                      ? 'bg-orange-600/20 text-orange-300 border-orange-500/30'  
+                      : 'bg-blue-600/20 text-blue-300 border-blue-500/30'
+                  }`}
+                    title={`Sugestão da IA: ${card.decisao_sprint_sugerida} - Esta é apenas uma recomendação baseada no score ASP`}
+                  >
+                    🤖 {card.decisao_sprint_sugerida}
+                  </div>
                 </div>
               </div>
 
@@ -307,56 +349,88 @@ ${card.observacoes}
                 </button>
 
                 {expandedCardId === card.card_id && (
-                  <div className="mt-4 space-y-4 animate-fade-in">
+                  <div className="mt-4 space-y-4 animate-fade-in bg-slate-900/50 rounded-lg p-4">
+                    {/* Debug info */}
+                    <div className="text-xs text-slate-500 mb-2">
+                      Debug: Expandindo card {card.card_id}
+                    </div>
+                    
                     {/* Subtasks */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-400 mb-2">✅ Subtarefas Sugeridas</h4>
-                      <ul className="space-y-1">
-                        {card.subtarefas_sugeridas.map((task, idx) => (
-                          <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
-                            <span className="text-emerald-400 mt-1">•</span>
-                            <span>{task}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {card.subtarefas_sugeridas && card.subtarefas_sugeridas.length > 0 ? (
+                        <ul className="space-y-1">
+                          {card.subtarefas_sugeridas.map((task, idx) => (
+                            <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                              <span className="text-emerald-400 mt-1">•</span>
+                              <span>{task}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-slate-500 italic">Nenhuma subtarefa disponível</p>
+                      )}
                     </div>
 
                     {/* DoD Security */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-400 mb-2">🔒 Definition of Done - Segurança</h4>
-                      <ul className="space-y-1">
-                        {card.dod_segurança.map((dod, idx) => (
-                          <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
-                            <span className="text-blue-400 mt-1">•</span>
-                            <span>{dod}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {card.dod_segurança && card.dod_segurança.length > 0 ? (
+                        <ul className="space-y-1">
+                          {card.dod_segurança.map((dod, idx) => (
+                            <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                              <span className="text-blue-400 mt-1">•</span>
+                              <span>{dod}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-slate-500 italic">Nenhum Definition of Done disponível</p>
+                      )}
                     </div>
 
                     {/* Cheat Sheets */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-400 mb-2">📖 OWASP Cheat Sheets</h4>
-                      <div className="space-y-2">
-                        {card.cheat_sheets.map((sheet, idx) => (
-                          <a
-                            key={idx}
-                            href={sheet.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-sm text-indigo-400 hover:text-indigo-300 hover:underline"
-                          >
-                            📄 {sheet.titulo}
-                          </a>
-                        ))}
-                      </div>
+                      {card.cheat_sheets && card.cheat_sheets.length > 0 ? (
+                        <div className="space-y-2">
+                          {card.cheat_sheets.map((sheet, idx) => (
+                            <a
+                              key={idx}
+                              href={sheet.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-sm text-indigo-400 hover:text-indigo-300 hover:underline"
+                            >
+                              📄 {sheet.titulo}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 italic">Nenhum cheat sheet disponível</p>
+                      )}
                     </div>
 
                     {/* Observations */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-400 mb-2">💡 Observações</h4>
-                      <p className="text-sm text-slate-300 italic">{card.observacoes}</p>
+                      <p className="text-sm text-slate-300 italic">
+                        {card.observacoes || 'Nenhuma observação disponível'}
+                      </p>
                     </div>
+                    
+                    {/* Debug - Card data */}
+                    <details className="text-xs text-slate-600">
+                      <summary className="cursor-pointer">Debug: Ver dados do card</summary>
+                      <pre className="mt-2 p-2 bg-slate-800 rounded text-xs overflow-auto">
+                        {JSON.stringify({
+                          subtarefas: card.subtarefas_sugeridas?.length || 0,
+                          dod: card.dod_segurança?.length || 0,
+                          cheat_sheets: card.cheat_sheets?.length || 0,
+                          observacoes: card.observacoes ? 'presente' : 'ausente'
+                        }, null, 2)}
+                      </pre>
+                    </details>
                   </div>
                 )}
               </div>
