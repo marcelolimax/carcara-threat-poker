@@ -1,20 +1,55 @@
-# 🎴 Carcará Threat Poker
+# 🎴 Carcará Threat Poker v2
 
-**Carcará Threat Poker** é uma ferramenta de análise de risco gamificada, projetada para equipes de desenvolvimento ágil. Utilizando o poder da IA generativa com a API do Google Gemini e se baseando no framework OWASP SAMM, a aplicação transforma o processo, muitas vezes complexo e demorado, de modelagem de ameaças em uma atividade interativa, educativa e rápida.
+**Carcará Threat Poker** é uma dinâmica leve de análise de risco para equipes ágeis. Com IA generativa atuando como **especialista consultiva**, transforma um processo tradicionalmente complexo em uma etapa rápida durante as *plannings*. 
 
-## A Necessidade: Análise de Risco Ágil e Acessível
+## 🚀 Novidades da v2
 
-Em ambientes de desenvolvimento ágil, a segurança precisa ser integrada de forma contínua, não como um gargalo no final do ciclo. No entanto, a modelagem de ameaças tradicional pode ser:
+A versão 2.0 introduz os **Cards de Segurança** - uma abordagem mais direta e técnica:
 
--   **Lenta e Complexa:** Exige sessões longas e conhecimento especializado, o que nem sempre se encaixa em sprints curtos.
--   **Intimidante:** Desenvolvedores podem não ter um background profundo em cibersegurança, dificultando a identificação proativa de ameaças.
--   **Desconectada do Backlog:** Os resultados das análises podem ser difíceis de traduzir em ações concretas e priorizáveis para a equipe.
+- **Análise simultânea**: múltiplas user stories de uma só vez
+- **Classificações técnicas automáticas**: OWASP Top 10, CWE, CVSS 4.0
+- **Priorização ASP**: Risco (1-10) × Esforço (1-10) = Score 0-100
+- **Documentação rica**: Subtarefas, DoD de segurança, OWASP Cheat Sheets
+- **Integração ágil**: saída pronta para ferramentas de backlog
 
-O Carcará Threat Poker resolve esses problemas ao "gamificar" o processo. Ele usa um formato de jogo de cartas para encorajar o pensamento crítico e a colaboração, enquanto a IA atua como uma especialista em segurança sob demanda, fornecendo insights técnicos de forma instantânea.
+**A ferramenta não exige que desenvolvedores realizem modelagem de ameaças** - a IA propõe cenários, classifica riscos e gera cards completos prontos para o backlog.
 
-## O Funcionamento: Uma Rodada de Jogo
+## 🎯 Dois Modos de Operação
 
-A interação é dividida em etapas claras, guiando a equipe desde a definição do escopo até a criação de um item acionável para o backlog.
+### 🏃 Modo Clássico (v1) - Poker Interativo
+Jogo tradicional com votação em equipe:
+- Votação e justificativas colaborativas
+- Análise de especialista pós-votação
+- 1 gamecard por rodada
+- Ideal para workshops e dinâmicas
+
+### 🚀 Modo Cards de Segurança (v2) - Análise Direta
+Abordagem ágil para plannings com **votação opcional**:
+- **⚡ Modo Rápido**: IA gera diretamente os cards (ideal para plannings)
+- **🏃 Modo Colaborativo**: inclui votação rápida da equipe para mais contexto
+- **Integra ao fluxo ágil**: sai da planning como **tickets** com subtarefas e DoD
+- **Priorização objetiva**: **ASP** ranqueia automaticamente
+- **Governança clara**: SAMM para maturidade; cards técnicos com Top 10/CWE/Cheat Sheets
+
+## 🎁 Fluxo Operacional v2
+
+### ⚡ Modo Rápido (Recomendado para Plannings)
+1. **Seleção de histórias** (PO): escolha 1–N histórias candidatas
+2. **Contexto opcional**: informações técnicas adicionais
+3. **Geração direta**: IA cria Cards de Segurança com classificações técnicas
+4. **Priorização ASP**: ordenação automática por score
+5. **Seleção para backlog**: escolha e exporte cards prioritários
+
+### 🏃 Modo Colaborativo (Com Votação)
+1. **Seleção de histórias**: igual ao modo rápido + checkbox "Incluir votação"
+2. **Geração de opções**: IA propõe 4 ameaças por história
+3. **Votação rápida**: equipe vota e justifica (1-2 frases)
+4. **Análise contextualizada**: IA usa votações para gerar cards mais precisos
+5. **Priorização e seleção**: igual ao modo rápido
+
+## 🎴 Funcionamento Clássico (v1)
+
+O modo original com interação dividida em etapas claras:
 
 1.  **Configuração (Setup):** O jogo começa com um membro da equipe (ou o time todo) inserindo uma *user story*, tarefa ou descrição de funcionalidade que será analisada. É possível escolher entre o modo "Jogo Solo" (para análise individual) ou "Jogo em Grupo".
 

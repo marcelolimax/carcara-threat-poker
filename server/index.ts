@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { generateThreatOptions, analyzeThreats } from './services';
+import { generateThreatOptions, analyzeThreats, generateSecurityCards } from './services';
+import { V2AnalysisRequest } from './types';
 
 const app = express();
 const port = 3000;
@@ -37,6 +38,41 @@ app.post('/api/analyze-threats', async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'An error occurred while analyzing threats' });
+  }
+});
+
+// v2 endpoint for generating Security Cards with ASP prioritization
+app.post('/api/v2/generate-security-cards', async (req: Request, res: Response) => {
+  const { userStories, contextoOpcional, votingData, includeVoting }: V2AnalysisRequest = req.body;
+
+  if (!userStories || !Array.isArray(userStories) || userStories.length === 0) {
+    return res.status(400).json({ error: 'userStories array is required and must not be empty' });
+  }
+
+  // Validate that at least one story is selected
+  const selectedStories = userStories.filter(story => story.selected);
+  if (selectedStories.length === 0) {
+    return res.status(400).json({ error: 'At least one user story must be selected' });
+  }
+
+  // Validate voting data if voting is included
+  if (includeVoting && (!votingData || votingData.length === 0)) {
+    return res.status(400).json({ error: 'votingData is required when includeVoting is true' });
+  }
+
+  try {
+    const cards = await generateSecurityCards(userStories, contextoOpcional, votingData);
+    res.json({
+      cards,
+      aspRanking: cards, // Already sorted by ASP score in generateSecurityCards
+      totalCards: cards.length,
+      selectedStories: selectedStories.length,
+      includedVoting: includeVoting,
+      votingResponses: votingData?.length || 0
+    });
+  } catch (error) {
+    console.error('Error generating security cards:', error);
+    res.status(500).json({ error: 'An error occurred while generating security cards' });
   }
 });
 

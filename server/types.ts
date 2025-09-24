@@ -1,11 +1,4 @@
-export enum GameState {
-  SETUP = 'SETUP',
-  GENERATING_OPTIONS = 'GENERATING_OPTIONS',
-  VOTING = 'VOTING',
-  ANALYZING = 'ANALYZING',
-  DECISION = 'DECISION',
-  RESULTS_READY = 'RESULTS_READY',
-}
+// Server-side types for Carcará Threat Poker v2
 
 export interface ThreatOption {
   id: string; // e.g., 'A', 'B', 'C'
@@ -79,7 +72,7 @@ export interface SecurityCard {
   versao_esquema: string;
 }
 
-// Legacy types for backward compatibility during migration
+// Legacy types for backward compatibility
 export interface AnalyzedThreat {
   id: string;
   description: string;
@@ -89,17 +82,6 @@ export interface AnalyzedThreat {
   sammPractice: string;
   // New v2 fields
   securityCard?: SecurityCard;
-}
-
-// Legacy Gamecard interface - will be replaced by SecurityCard
-export interface Gamecard {
-  task: string;
-  chosenThreat: string;
-  risk: 'baixo' | 'médio' | 'alto' | 'crítico';
-  mitigationEffort: 'baixo' | 'médio' | 'alto' | 'muito alto';
-  consolidatedExplanation: string;
-  suggestedAction: string;
-  sammPractice: string;
 }
 
 // New types for v2 multi-story workflow

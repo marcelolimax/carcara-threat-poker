@@ -1,36 +1,51 @@
 import React, { useState, useCallback } from 'react';
-import { GameState, ThreatOption, Gamecard, PlayerResponse, AnalyzedThreat } from './types';
+import { GameState, ThreatOption, Gamecard, PlayerResponse, AnalyzedThreat, SecurityCard, UserStoryInput, V2VotingData } from './types';
 
 import Header from './components/Header';
 import GameSetup from './components/ThemeInput';
+import MultiStorySetup from './components/MultiStorySetup';
+import V2VotingScreen from './components/V2VotingScreen';
 import OptionsSelector from './components/OptionsSelector';
 import DecisionScreen from './components/DecisionScreen';
 import GamecardDisplay from './components/GamecardDisplay';
+import SecurityCardsDisplay from './components/SecurityCardsDisplay';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 
 type GameMode = 'solo' | 'group';
+type AppMode = 'v1' | 'v2'; // v1 = original poker, v2 = security cards
 
 const App: React.FC = () => {
+  // App mode selection
+  const [appMode, setAppMode] = useState<AppMode | null>(null);
+  
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
   const [error, setError] = useState<string | null>(null);
 
-  // Game setup data
+  // v1 Game setup data (original poker)
   const [userStory, setUserStory] = useState<string>('');
   const [gameMode, setGameMode] = useState<GameMode>('solo');
   const [playerCount, setPlayerCount] = useState<number>(1);
   const [threatOptions, setThreatOptions] = useState<ThreatOption[]>([]);
   
-  // Turn-based data
+  // v1 Turn-based data
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [playerResponses, setPlayerResponses] = useState<PlayerResponse[]>([]);
   const [selectedOption, setSelectedOption] = useState<ThreatOption | null>(null);
   const [justification, setJustification] = useState<string>('');
 
-  // Analysis & Results data
+  // v1 Analysis & Results data
   const [analyzedThreats, setAnalyzedThreats] = useState<AnalyzedThreat[]>([]);
   const [gamecardData, setGamecardData] = useState<Gamecard | null>(null);
+  
+  // v2 Security Cards data
+  const [securityCards, setSecurityCards] = useState<SecurityCard[]>([]);
+  const [v2IncludeVoting, setV2IncludeVoting] = useState(false);
+  const [v2Stories, setV2Stories] = useState<UserStoryInput[]>([]);
+  const [v2ContextoOpcional, setV2ContextoOpcional] = useState<string>();
+  const [v2ThreatOptionsByStory, setV2ThreatOptionsByStory] = useState<{[storyId: string]: ThreatOption[]}>({});
+  const [v2VotingData, setV2VotingData] = useState<V2VotingData[]>([]);
 
   const handleStartGame = useCallback(async (mode: GameMode, story: string, pCount: number) => {
     setError(null);
@@ -133,8 +148,109 @@ const App: React.FC = () => {
   };
 
 
+  // v2 handlers
+  const handleStartSecurityAnalysis = useCallback(async (stories: UserStoryInput[], contextoOpcional?: string, includeVoting?: boolean) => {
+    setError(null);
+    setV2Stories(stories);
+    setV2ContextoOpcional(contextoOpcional);
+    setV2IncludeVoting(includeVoting || false);
+    
+    if (includeVoting) {
+      // Generate threat options for voting first
+      setGameState(GameState.GENERATING_OPTIONS);
+      
+      try {
+        const threatOptionsByStory: {[storyId: string]: ThreatOption[]} = {};
+        
+        for (const story of stories.filter(s => s.selected)) {
+          const response = await fetch('/api/generate-threat-options', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userStory: story.content }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate threat options');
+          }
+
+          const data = await response.json();
+          threatOptionsByStory[story.id] = data.options;
+        }
+        
+        setV2ThreatOptionsByStory(threatOptionsByStory);
+        setGameState(GameState.VOTING);
+      } catch (err) {
+        console.error(err);
+        setError('Falha ao gerar opções de ameaças. Verifique o backend e tente novamente.');
+        setGameState(GameState.SETUP);
+      }
+    } else {
+      // Direct analysis without voting
+      await handleGenerateSecurityCards(stories, contextoOpcional);
+    }
+  }, []);
+  
+  const handleV2VotingComplete = useCallback(async (votingData: V2VotingData[]) => {
+    setV2VotingData(votingData);
+    await handleGenerateSecurityCards(v2Stories, v2ContextoOpcional, votingData);
+  }, [v2Stories, v2ContextoOpcional]);
+  
+  const handleGenerateSecurityCards = useCallback(async (stories: UserStoryInput[], contextoOpcional?: string, votingData?: V2VotingData[]) => {
+    setGameState(GameState.ANALYZING);
+    
+    try {
+      const response = await fetch('/api/v2/generate-security-cards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userStories: stories, 
+          contextoOpcional,
+          votingData,
+          includeVoting: !!votingData
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate security cards');
+      }
+
+      const data = await response.json();
+      setSecurityCards(data.cards);
+      setGameState(GameState.RESULTS_READY);
+    } catch (err) {
+      console.error(err);
+      setError('Falha ao gerar Cards de Segurança. Verifique o backend e tente novamente.');
+      setGameState(GameState.SETUP);
+    }
+  }, []);
+  
+  const handleSelectCardsForBacklog = useCallback((selectedCards: SecurityCard[]) => {
+    // Here you could integrate with external tools like Jira, Trello, etc.
+    // For now, just show a confirmation
+    const cardIds = selectedCards.map(card => card.card_id).join(', ');
+    alert(`${selectedCards.length} cards selecionados para o backlog: ${cardIds}`);
+    
+    // You could also copy all selected cards to clipboard
+    const allCardsText = selectedCards.map(card => {
+      return `
+🎴 Card: ${card.card_id}
+📌 Story: ${card.user_story}
+⚠️ Ameaça: ${card.ameaca_titulo}
+📊 ASP: ${card.asp_score} (R:${card.insumos_asp.risco.valor} × E:${card.insumos_asp.esforco.valor})
+🚦 Decisão: ${card.decisao_sprint_sugerida}
+      `;
+    }).join('\n---\n');
+    
+    navigator.clipboard.writeText(allCardsText.trim());
+  }, []);
+
   const handlePlayAgain = () => {
     // Reset all state to initial values
+    setAppMode(null);
     setGameState(GameState.SETUP);
     setError(null);
     setUserStory('');
@@ -147,9 +263,107 @@ const App: React.FC = () => {
     setJustification('');
     setAnalyzedThreats([]);
     setGamecardData(null);
+    setSecurityCards([]);
+    setV2IncludeVoting(false);
+    setV2Stories([]);
+    setV2ContextoOpcional(undefined);
+    setV2ThreatOptionsByStory({});
+    setV2VotingData([]);
   };
 
+  const renderModeSelection = () => (
+    <div className="animate-fade-in text-center">
+      <h2 className="text-4xl font-bold text-slate-100 mb-4">
+        🎦 Carcará Threat Poker
+      </h2>
+      <p className="text-slate-400 mb-8 text-lg">
+        Escolha o modo de análise de segurança para sua equipe
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div 
+          onClick={() => setAppMode('v1')}
+          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-indigo-500 cursor-pointer transition-all duration-300 transform hover:scale-105"
+        >
+          <div className="text-4xl mb-4">🏃</div>
+          <h3 className="text-xl font-bold text-slate-100 mb-3">Modo Clássico (v1)</h3>
+          <p className="text-slate-300 text-sm mb-4">
+            Jogo de poker tradicional com votação em equipe, justificativas e análise colaborativa. 
+            Ideal para workshops e dinâmicas de equipe.
+          </p>
+          <ul className="text-xs text-slate-400 text-left space-y-1">
+            <li>• Votação interativa</li>
+            <li>• Justificativas da equipe</li>
+            <li>• Decisão colaborativa</li>
+            <li>• 1 gamecard por rodada</li>
+          </ul>
+        </div>
+        
+        <div 
+          onClick={() => setAppMode('v2')}
+          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-emerald-500 cursor-pointer transition-all duration-300 transform hover:scale-105 relative"
+        >
+          <div className="absolute -top-2 -right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            NOVO
+          </div>
+          <div className="text-4xl mb-4">🚀</div>
+          <h3 className="text-xl font-bold text-slate-100 mb-3">Cards de Segurança (v2)</h3>
+          <p className="text-slate-300 text-sm mb-4">
+            Análise rápida e abrangente com IA. Gera cards técnicos completos com OWASP Top 10, 
+            CWE, CVSS 4.0 e priorização ASP. Ideal para plannings ágeis.
+          </p>
+          <ul className="text-xs text-slate-400 text-left space-y-1">
+            <li>• Múltiplas histórias simultâneas</li>
+            <li>• Classificações técnicas automáticas</li>
+            <li>• Priorização ASP (Risco × Esforço)</li>
+            <li>• Subtarefas e DoD pré-definidos</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
+    // Mode selection screen
+    if (!appMode) {
+      return renderModeSelection();
+    }
+    
+    // v2 Security Cards workflow
+    if (appMode === 'v2') {
+      switch (gameState) {
+        case GameState.SETUP:
+          return <MultiStorySetup onStartAnalysis={handleStartSecurityAnalysis} />;
+        
+        case GameState.GENERATING_OPTIONS:
+          return <LoadingSpinner text={v2IncludeVoting ? "Gerando opções para votação..." : "Gerando Cards de Segurança com IA..."} />;
+        
+        case GameState.VOTING:
+          return (
+            <V2VotingScreen 
+              stories={v2Stories.filter(s => s.selected)}
+              threatOptionsByStory={v2ThreatOptionsByStory}
+              onVotingComplete={handleV2VotingComplete}
+            />
+          );
+        
+        case GameState.ANALYZING:
+          return <LoadingSpinner text="Analisando votações e gerando Cards de Segurança..." />;
+        
+        case GameState.RESULTS_READY:
+          return (
+            <SecurityCardsDisplay 
+              cards={securityCards}
+              onSelectCards={handleSelectCardsForBacklog}
+              onPlayAgain={handlePlayAgain}
+            />
+          );
+        
+        default:
+          return <MultiStorySetup onStartAnalysis={handleStartSecurityAnalysis} />;
+      }
+    }
+    
+    // v1 Classic poker workflow
     switch (gameState) {
       case GameState.SETUP:
         return <GameSetup onStartGame={handleStartGame} />;

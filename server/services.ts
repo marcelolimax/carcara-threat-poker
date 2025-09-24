@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ThreatOption, AnalyzedThreat, PlayerResponse } from './types';
+import { ThreatOption, AnalyzedThreat, PlayerResponse, SecurityCard, UserStoryInput, V2VotingData } from './types';
 
 if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY environment variable not set");
@@ -7,20 +7,18 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export const generateThreatOptions = async (userStory: string): Promise<ThreatOption[]> => {
+export const generateThreatOptions = async (userStory: string, contextoOpcional?: string): Promise<ThreatOption[]> => {
+    const contextoTexto = contextoOpcional ? `\nContexto adicional: "${contextoOpcional}"` : '';
+    
     const prompt = `
-    Você é um Mestre de Jogo de "Carcará Theat Poker", especialista em cibersegurança e na aplicação do framework OWASP SAMM. Seu objetivo é ajudar uma equipe de desenvolvimento a analisar riscos de forma gamificada e educativa.
+Você é o Mestre de Jogo do Carcará Threat Poker. Gere 4 alternativas de AMEAÇAS plausíveis a partir da user story abaixo.
+Regras:
+- Foque na AMEAÇA (não na mitigação).
+- Inclua 2–3 opções fortes e 1–2 verossímeis porém menos prioritárias.
+- Não diga quais são corretas.
+Saída: JSON {"options":[{"id":"A","description":"..."}, ...]}
 
-    A equipe forneceu a seguinte user story:
-    "${userStory}"
-
-    Com base nesta história, gere 4 alternativas distintas para uma potencial ameaça de segurança. Cada alternativa deve focar no *problema* (a ameaça), não na *solução* (a mitigação). A equipe irá discutir as mitigações depois. Cada ameaça deve se relacionar a uma prática de segurança do OWASP SAMM (ex: Análise de Ameaças, Testes de Segurança, Gerenciamento de Defeitos).
-    - Crie 2-3 opções que sejam ameaças de segurança plausíveis e relevantes.
-    - Crie 1-2 opções que sejam incorretas, sutilmente falhas ou menos prioritárias, mas que pareçam verossímeis para um não especialista.
-    - NÃO rotule quais são corretas ou incorretas.
-    - Use o formato "Opção A", "Opção B", etc., no seu pensamento, mas o JSON final deve ter apenas o ID e a descrição.
-
-    Retorne a resposta como um objeto JSON com uma única chave "options", que é um array de objetos. Cada objeto deve ter duas chaves: "id" (ex: "A", "B", "C", "D") e "description" (o texto da opção).
+User story: "${userStory}"${contextoTexto}
     `;
 
     const response = await ai.models.generateContent({
@@ -141,4 +139,188 @@ export const analyzeThreats = async (
     }
     
     return parsedResponse.analyzedOptions;
+};
+
+// Calculate ASP score: risco (1-10) × esforço (1-10) = 0-100
+export const calculateASP = (risco: number, esforco: number): number => {
+    return risco * esforco;
+};
+
+// Generate Security Cards v2 with OWASP Top 10, CWE, CVSS 4.0, Cheat Sheets
+export const generateSecurityCards = async (
+    userStories: UserStoryInput[],
+    contextoOpcional?: string,
+    votingData?: V2VotingData[]
+): Promise<SecurityCard[]> => {
+    const allCards: SecurityCard[] = [];
+    
+    for (const story of userStories.filter(s => s.selected)) {
+        // Generate threat options for this story
+        const threatOptions = await generateThreatOptions(story.content, contextoOpcional);
+        
+        // Find voting data for this story if available
+        const storyVoting = votingData?.find(v => v.storyId === story.id);
+        
+        // Generate security cards for each threat option
+        for (const option of threatOptions) {
+            const card = await generateSecurityCard(story.content, option, storyVoting);
+            allCards.push(card);
+        }
+    }
+    
+    // Calculate ASP scores and sort by priority (highest first)
+    allCards.forEach(card => {
+        card.asp_score = calculateASP(card.insumos_asp.risco.valor, card.insumos_asp.esforco.valor);
+    });
+    
+    return allCards.sort((a, b) => (b.asp_score || 0) - (a.asp_score || 0));
+};
+
+// Generate a single Security Card with full v2 analysis
+export const generateSecurityCard = async (
+    userStory: string,
+    threatOption: ThreatOption,
+    votingData?: V2VotingData
+): Promise<SecurityCard> => {
+    // Include voting context if available
+    const votingContext = votingData ? `
+
+Contexto de Votação da Equipe:
+- Opção selecionada pela equipe: ${votingData.selectedOptionId}
+- Justificativa: "${votingData.quickJustification}"
+- Esta análise é para a opção ${threatOption.id}${votingData.selectedOptionId === threatOption.id ? ' (ESCOLHIDA PELA EQUIPE)' : ' (não escolhida pela equipe)'}` : '';
+    
+    const prompt = `
+Você é consultora de segurança. Para a opção apresentada, produza a análise seguindo estritamente o schema.
+Regras:
+- OWASP Top 10 e CWE como hipóteses com "confianca" (0–1).
+- CVSS informativo (4.0): vetor, pontuacao_base, severidade, e "confianca".
+- 2+ OWASP Cheat Sheets oficiais (título + URL).
+- NÃO calcule ASP. Preencha SOMENTE insumos_asp: risco (1–10) e esforço (1–10) nas escalas do Carcará.
+- Subtarefas acionáveis; DoD objetivo.
+- Saída: JSON estrito conforme schema.
+
+User Story: "${userStory}"
+Opção: "${threatOption.id}: ${threatOption.description}"${votingContext}
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash-exp",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    card_id: { type: Type.STRING },
+                    user_story: { type: Type.STRING },
+                    ameaca_titulo: { type: Type.STRING },
+                    descricao_ameaca: { type: Type.STRING },
+                    classificacoes: {
+                        type: Type.OBJECT,
+                        properties: {
+                            owasp_top10: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    categoria: { type: Type.STRING },
+                                    confianca: { type: Type.NUMBER }
+                                },
+                                required: ["categoria", "confianca"]
+                            },
+                            cwe: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.STRING },
+                                    nome: { type: Type.STRING },
+                                    confianca: { type: Type.NUMBER }
+                                },
+                                required: ["id", "nome", "confianca"]
+                            },
+                            cvss: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    versao: { type: Type.STRING, enum: ["4.0"] },
+                                    vetor: { type: Type.STRING },
+                                    pontuacao_base: { type: Type.NUMBER },
+                                    severidade: { type: Type.STRING, enum: ["Low", "Medium", "High", "Critical"] },
+                                    confianca: { type: Type.NUMBER }
+                                },
+                                required: ["versao", "vetor", "pontuacao_base", "severidade", "confianca"]
+                            }
+                        },
+                        required: ["owasp_top10", "cwe", "cvss"]
+                    },
+                    cheat_sheets: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                titulo: { type: Type.STRING },
+                                url: { type: Type.STRING }
+                            },
+                            required: ["titulo", "url"]
+                        }
+                    },
+                    insumos_asp: {
+                        type: Type.OBJECT,
+                        properties: {
+                            risco: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    escala: { type: Type.STRING, enum: ["1-10"] },
+                                    valor: { type: Type.NUMBER }
+                                },
+                                required: ["escala", "valor"]
+                            },
+                            esforco: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    escala: { type: Type.STRING, enum: ["1-10"] },
+                                    valor: { type: Type.NUMBER }
+                                },
+                                required: ["escala", "valor"]
+                            }
+                        },
+                        required: ["risco", "esforco"]
+                    },
+                    decisao_sprint_sugerida: { type: Type.STRING, enum: ["Selecionar", "Adiar", "Avaliar"] },
+                    subtarefas_sugeridas: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    },
+                    dod_seguranca: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    },
+                    observacoes: { type: Type.STRING },
+                    versao_esquema: { type: Type.STRING }
+                },
+                required: [
+                    "card_id", "user_story", "ameaca_titulo", "descricao_ameaca",
+                    "classificacoes", "cheat_sheets", "insumos_asp",
+                    "decisao_sprint_sugerida", "subtarefas_sugeridas", "dod_seguranca",
+                    "observacoes", "versao_esquema"
+                ]
+            }
+        }
+    });
+    
+    const jsonString = response?.text ? response.text.trim() : null;
+    if (!jsonString) {
+        throw new Error("Empty response from Gemini API for security card generation.");
+    }
+    
+    const parsedCard = JSON.parse(jsonString);
+    
+    // Ensure card_id is unique if not provided
+    if (!parsedCard.card_id || parsedCard.card_id === '') {
+        parsedCard.card_id = `SEC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    // Set version if not provided
+    if (!parsedCard.versao_esquema) {
+        parsedCard.versao_esquema = "1.1.0";
+    }
+    
+    return parsedCard as SecurityCard;
 };
