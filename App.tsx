@@ -258,7 +258,7 @@ const App: React.FC = () => {
 ${card.subtarefas_sugeridas.map(task => `• ${task}`).join('\n')}
 
 🔒 DEFINITION OF DONE - SEGURANÇA:
-${card.dod_segurança.map(dod => `• ${dod}`).join('\n')}
+${card.dod_seguranca.map(dod => `• ${dod}`).join('\n')}
 
 📚 RECURSOS OWASP:
 ${card.cheat_sheets.map(sheet => `• ${sheet.titulo}: ${sheet.url}`).join('\n')}

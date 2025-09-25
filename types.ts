@@ -74,7 +74,7 @@ export interface SecurityCard {
   asp_score?: number; // Calculated ASP score for prioritization
   decisao_sprint_sugerida: 'Selecionar' | 'Adiar' | 'Avaliar';
   subtarefas_sugeridas: string[];
-  dod_segurança: string[];
+  dod_seguranca: string[]; // Propriedade sem acento conforme backend
   observacoes: string;
   versao_esquema: string;
 }

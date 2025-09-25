@@ -112,7 +112,7 @@ const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({
 ${card.subtarefas_sugeridas?.map(task => `  • ${task}`)?.join('\n') || 'Nenhuma subtarefa disponível'}
 
 🔒 DEFINITION OF DONE - SEGURANÇA:
-${card.dod_segurança?.map(dod => `  • ${dod}`)?.join('\n') || 'Nenhum DoD disponível'}
+${card.dod_seguranca?.map(dod => `  • ${dod}`)?.join('\n') || 'Nenhum DoD disponível'}
 
 ═══ RECURSOS E REFERÊNCIAS ═══
 📚 CHEAT SHEETS OWASP:
@@ -375,9 +375,9 @@ ${card.observacoes || 'Nenhuma observação'}
                     {/* DoD Security */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-400 mb-2">🔒 Definition of Done - Segurança</h4>
-                      {card.dod_segurança && card.dod_segurança.length > 0 ? (
+                      {card.dod_seguranca && card.dod_seguranca.length > 0 ? (
                         <ul className="space-y-1">
-                          {card.dod_segurança.map((dod, idx) => (
+                          {card.dod_seguranca.map((dod, idx) => (
                             <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
                               <span className="text-blue-400 mt-1">•</span>
                               <span>{dod}</span>
@@ -422,14 +422,25 @@ ${card.observacoes || 'Nenhuma observação'}
                     {/* Debug - Card data */}
                     <details className="text-xs text-slate-600">
                       <summary className="cursor-pointer">Debug: Ver dados do card</summary>
-                      <pre className="mt-2 p-2 bg-slate-800 rounded text-xs overflow-auto">
-                        {JSON.stringify({
-                          subtarefas: card.subtarefas_sugeridas?.length || 0,
-                          dod: card.dod_segurança?.length || 0,
-                          cheat_sheets: card.cheat_sheets?.length || 0,
-                          observacoes: card.observacoes ? 'presente' : 'ausente'
-                        }, null, 2)}
-                      </pre>
+                      <div className="mt-2 space-y-2">
+                        <div className="p-2 bg-slate-800 rounded">
+                          <strong>Contadores:</strong>
+                          <pre className="text-xs overflow-auto">
+                            {JSON.stringify({
+                              subtarefas: card.subtarefas_sugeridas?.length || 0,
+                              dod_seguranca: card.dod_seguranca?.length || 0,
+                              cheat_sheets: card.cheat_sheets?.length || 0,
+                              observacoes: card.observacoes ? 'presente' : 'ausente'
+                            }, null, 2)}
+                          </pre>
+                        </div>
+                        <div className="p-2 bg-slate-800 rounded">
+                          <strong>DoD Raw Data:</strong>
+                          <pre className="text-xs overflow-auto max-h-32">
+                            {JSON.stringify(card.dod_seguranca, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
                     </details>
                   </div>
                 )}
