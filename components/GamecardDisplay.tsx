@@ -36,7 +36,7 @@ const EffortBadge: React.FC<{ effort: string }> = ({ effort }) => {
 
 const GamecardDisplay: React.FC<GamecardDisplayProps> = ({ card, onPlayAgain }) => {
   const cardText = `
-🎴 Gamecard de Carcará Theat Poker
+🎴 Gamecard de Carcará Threat Poker
 
 📌 Task: ${card.task}
 ⚠️ Ameaça escolhida: ${card.chosenThreat}
@@ -55,7 +55,7 @@ const GamecardDisplay: React.FC<GamecardDisplayProps> = ({ card, onPlayAgain }) 
 
   return (
     <div className="animate-fade-in-up p-6 bg-slate-900 border border-slate-700 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">🎴 Gamecard de Carcará Theat Poker</h2>
+      <h2 className="text-2xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">🎴 Gamecard de Carcará Threat Poker</h2>
       
       <div className="space-y-4 text-slate-300">
         <div>

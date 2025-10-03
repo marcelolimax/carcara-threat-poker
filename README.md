@@ -117,7 +117,7 @@ Nesta fase, a IA assume o papel de um Mestre de Jogo criativo, cujo objetivo é 
 
 **🤖 Prompt de Geração:**
 ```
-Você é um Mestre de Jogo de "Carcará Theat Poker", especialista em cibersegurança e na aplicação do framework OWASP SAMM. Seu objetivo é ajudar uma equipe de desenvolvimento a analisar riscos de forma gamificada e educativa.
+Você é um Mestre de Jogo de "Carcará Threat Poker", especialista em cibersegurança e na aplicação do framework OWASP SAMM. Seu objetivo é ajudar uma equipe de desenvolvimento a analisar riscos de forma gamificada e educativa.
 
 A equipe forneceu a seguinte user story:
 "${userStory}"
