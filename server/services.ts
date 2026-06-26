@@ -1,11 +1,54 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ThreatOption, AnalyzedThreat, PlayerResponse, SecurityCard, UserStoryInput, V2VotingData } from './types';
 
-if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY environment variable not set");
-}
+/**
+ * Inicializa o cliente do Gemini suportando dois provedores:
+ *  - Vertex AI (service account via variáveis de ambiente): defina
+ *    GOOGLE_GENAI_USE_VERTEXAI=true, GOOGLE_CLOUD_PROJECT, GOOGLE_CLIENT_EMAIL e
+ *    GOOGLE_PRIVATE_KEY (opcional GOOGLE_CLOUD_LOCATION, default us-central1).
+ *    Não usa arquivo JSON: as credenciais vêm direto do ambiente.
+ *  - Gemini Developer API (chave): defina GEMINI_API_KEY.
+ * O Vertex AI não usa a cota free-tier de 20 req/dia do Developer API.
+ */
+const useVertex =
+    process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' ||
+    process.env.GOOGLE_GENAI_USE_VERTEXAI === '1';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI;
+
+if (useVertex) {
+    const project = process.env.GOOGLE_CLOUD_PROJECT;
+    const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    // A private key vem em uma única linha no .env; restauramos as quebras de linha.
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!project) {
+        throw new Error("GOOGLE_CLOUD_PROJECT is required when GOOGLE_GENAI_USE_VERTEXAI is enabled");
+    }
+    if (!clientEmail || !privateKey) {
+        throw new Error("GOOGLE_CLIENT_EMAIL e GOOGLE_PRIVATE_KEY são obrigatórios para autenticar no Vertex AI via variáveis de ambiente");
+    }
+
+    ai = new GoogleGenAI({
+        vertexai: true,
+        project,
+        location,
+        googleAuthOptions: {
+            credentials: {
+                client_email: clientEmail,
+                private_key: privateKey,
+            },
+        },
+    });
+    console.log(`[IA] Usando Vertex AI (project=${project}, location=${location})`);
+} else {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error("Defina GEMINI_API_KEY (Gemini Developer API) ou GOOGLE_GENAI_USE_VERTEXAI=true com as credenciais do Vertex AI");
+    }
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    console.log('[IA] Usando Gemini Developer API (chave)');
+}
 
 export const generateThreatOptions = async (userStory: string, contextoOpcional?: string): Promise<ThreatOption[]> => {
     const contextoTexto = contextoOpcional ? `\nContexto adicional: "${contextoOpcional}"` : '';

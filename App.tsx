@@ -467,7 +467,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
           {renderContent()}
         </div>
         <footer className="text-center mt-8 text-slate-500 text-sm">
-          <p>Powered by Gemini API. Criado para análise de risco ágil.</p>
+          <p>Criado para atender a proposta de pesquisa "CARCARÁ: UMA ABORDAGEM LEVE PARA MODELAGEM DE AMEAÇAS EM AMBIENTES ÁGEIS", por Marcelo Wanderley Lima.</p>
         </footer>
       </main>
     </div>

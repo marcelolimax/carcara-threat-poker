@@ -90,13 +90,24 @@ Para executar o Carcará Threat Poker localmente, use o Docker Compose.
 
 Sobe tudo (nginx + frontend + backend) em um único container, usando o `Dockerfile` já existente. O nginx serve o frontend na porta `8080` e faz proxy de `/api/` para o backend Node.
 
-**Pré-requisitos:** [Docker](https://docs.docker.com/get-docker/) (com Docker Compose) e uma chave de API do Google Gemini, obtida no [Google AI Studio](https://aistudio.google.com/app/apikey).
+**Pré-requisitos:** [Docker](https://docs.docker.com/get-docker/) (com Docker Compose) e um provedor de IA do Google (Gemini Developer API **ou** Vertex AI).
 
-1.  **Configure a chave de API:**
+1.  **Configure o provedor de IA:**
     ```bash
     cp .env.example .env
-    # edite o .env e preencha GEMINI_API_KEY com a chave do Google AI Studio
     ```
+    Edite o `.env` e escolha **uma** das opções:
+
+    - **Opção A — Gemini Developer API (chave):** preencha `GEMINI_API_KEY` com a chave do [Google AI Studio](https://aistudio.google.com/app/apikey). Simples, mas sujeita à cota free-tier (ex.: 20 req/dia por modelo).
+    - **Opção B — Vertex AI (service account, somente variáveis de ambiente):** recomendada para evitar a cota free-tier. Copie os campos do JSON da service account para o `.env` (sem usar o arquivo):
+      ```env
+      GOOGLE_GENAI_USE_VERTEXAI=true
+      GOOGLE_CLOUD_PROJECT=seu-projeto-gcp          # campo project_id do JSON
+      GOOGLE_CLOUD_LOCATION=us-central1
+      GOOGLE_CLIENT_EMAIL=sua-sa@projeto.iam.gserviceaccount.com   # campo client_email
+      GOOGLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n   # campo private_key, em UMA linha com \n
+      ```
+      A `GOOGLE_PRIVATE_KEY` deve ficar em **uma única linha**, mantendo os `\n` literais (o backend converte para quebras de linha). A service account precisa do papel **Vertex AI User** e da API Vertex AI habilitada no projeto.
 
 2.  **Suba a aplicação:**
     ```bash
