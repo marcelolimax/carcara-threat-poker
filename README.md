@@ -14,6 +14,8 @@ A versão 2.0 introduz os **Cards de Segurança** - uma abordagem mais direta e 
 
 **A ferramenta não exige que desenvolvedores realizem modelagem de ameaças** - a IA propõe cenários, classifica riscos e gera cards completos prontos para o backlog.
 
+> 📖 Veja o **[Guia de Uso passo a passo (v1 e v2)](./GUIA_DE_USO.md)** com capturas de tela de cada etapa.
+
 ## 🎯 Dois Modos de Operação
 
 ### 🏃 Modo Clássico (v1) - Poker Interativo
