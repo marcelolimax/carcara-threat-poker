@@ -54,7 +54,7 @@ const V2VotingScreen: React.FC<V2VotingScreenProps> = ({
   const handleNext = () => {
     if (isLastStory) {
       // Complete voting process
-      const votingData = Object.values(votes).filter(vote => 
+      const votingData = Object.values(votes).filter((vote: V2VotingData) => 
         vote.selectedOptionId && vote.quickJustification.trim()
       );
       onVotingComplete(votingData);
@@ -64,7 +64,7 @@ const V2VotingScreen: React.FC<V2VotingScreenProps> = ({
   };
 
   const canProceed = currentVote?.selectedOptionId && currentVote?.quickJustification.trim();
-  const completedCount = Object.values(votes).filter(vote => 
+  const completedCount = Object.values(votes).filter((vote: V2VotingData) => 
     vote.selectedOptionId && vote.quickJustification.trim()
   ).length;
 
