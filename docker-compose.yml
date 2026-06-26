@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carcara-threat-poker
+    container_name: carcara-threat-poker
+    ports:
+      # nginx serve o frontend e faz proxy de /api/ para o backend (Node na 3000)
+      - "8080:8080"
+    environment:
+      # Necessária pelo backend (server/services.ts). Defina em um arquivo .env na raiz.
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?defina GEMINI_API_KEY em um arquivo .env na raiz}
+    restart: unless-stopped

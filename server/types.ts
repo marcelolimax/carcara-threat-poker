@@ -58,6 +58,7 @@ export interface SecurityCard {
   ameaca_titulo: string;
   descricao_ameaca: string;
   classificacoes: {
+    stride: string[]; // STRIDE: técnica central de modelagem de ameaças (CATM)
     owasp_top10: OwaspTop10Classification;
     cwe: CWEClassification;
     cvss: CVSSInfo;
@@ -79,7 +80,7 @@ export interface AnalyzedThreat {
   risk: 'baixo' | 'médio' | 'alto' | 'crítico';
   mitigationEffort: 'baixo' | 'médio' | 'alto' | 'muito alto';
   analysis: string;
-  sammPractice: string;
+  stride: string[]; // Classificação STRIDE da ameaça (modelagem de ameaças)
   // New v2 fields
   securityCard?: SecurityCard;
 }

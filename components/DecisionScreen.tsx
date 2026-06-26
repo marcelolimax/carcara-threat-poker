@@ -40,7 +40,7 @@ const DecisionScreen: React.FC<DecisionScreenProps> = ({ analyzedThreats, onSubm
     <div className="animate-fade-in">
       <h2 className="text-3xl font-bold text-center text-slate-100 mb-2">Análise do Especialista</h2>
       <p className="text-slate-400 text-center mb-8">
-        A IA analisou cada opção com base no OWASP SAMM. Discuta com sua equipe e escolha a ameaça a ser priorizada.
+        A IA analisou cada opção com base no STRIDE (modelagem de ameaças). Discuta com sua equipe e escolha a ameaça a ser priorizada.
       </p>
 
       <div className="space-y-4">
@@ -77,7 +77,7 @@ const DecisionScreen: React.FC<DecisionScreenProps> = ({ analyzedThreats, onSubm
             <div className="mt-2 p-3 bg-slate-900/70 rounded-md">
                  <p className="text-sm text-slate-400">{threat.analysis}</p>
                  <p className="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-700/50">
-                    <strong>Prática OWASP SAMM:</strong> {threat.sammPractice}
+                    <strong>Classificação STRIDE:</strong> {threat.stride?.join(', ')}
                  </p>
             </div>
           </div>

@@ -40,7 +40,7 @@ const GamecardDisplay: React.FC<GamecardDisplayProps> = ({ card, onPlayAgain }) 
 
 📌 Task: ${card.task}
 ⚠️ Ameaça escolhida: ${card.chosenThreat}
-📖 Prática OWASP SAMM: ${card.sammPractice}
+🏷️ Classificação STRIDE: ${card.stride?.join(', ')}
 🔒 Risco estimado: ${card.risk}
 🛠️ Esforço de mitigação: ${card.mitigationEffort}
 💡 Explicação consolidada: ${card.consolidatedExplanation}
@@ -67,8 +67,8 @@ const GamecardDisplay: React.FC<GamecardDisplayProps> = ({ card, onPlayAgain }) 
           <p>"{card.chosenThreat}"</p>
         </div>
          <div>
-          <h3 className="font-semibold text-slate-400">📖 Prática OWASP SAMM</h3>
-          <p>{card.sammPractice}</p>
+          <h3 className="font-semibold text-slate-400">🏷️ Classificação STRIDE</h3>
+          <p>{card.stride?.join(', ')}</p>
         </div>
         <div className="flex items-center space-x-4">
             <div>
