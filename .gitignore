@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+vertex
+vertex/*
+
+# Variáveis de ambiente (contêm segredos)
+.env
+.env.*
+!.env.example
+
+# Credenciais de service account (Vertex AI) — não comitar
+vertex/
 
 # Editor directories and files
 .vscode/*

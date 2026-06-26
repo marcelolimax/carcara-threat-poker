@@ -141,7 +141,7 @@ const App: React.FC = () => {
       mitigationEffort: chosenThreat.mitigationEffort,
       consolidatedExplanation: chosenThreat.analysis,
       suggestedAction: `Implementar a mitigação para a ameaça: "${chosenThreat.description}".`,
-      sammPractice: chosenThreat.sammPractice,
+      stride: chosenThreat.stride,
     };
     setGamecardData(finalCard);
     setGameState(GameState.RESULTS_READY);
@@ -244,6 +244,7 @@ const App: React.FC = () => {
 📖 DESCRIÇÃO: ${card.descricao_ameaca}
 
 🏷️ CLASSIFICAÇÕES TÉCNICAS:
+• STRIDE: ${card.classificacoes.stride.join(', ')}
 • OWASP Top 10: ${card.classificacoes.owasp_top10.categoria} (📊${Math.round(card.classificacoes.owasp_top10.confianca * 100)}% confiança IA)
 • CWE: ${card.classificacoes.cwe.id} - ${card.classificacoes.cwe.nome} (📊${Math.round(card.classificacoes.cwe.confianca * 100)}% confiança IA)
 • CVSS 4.0: ${card.classificacoes.cvss.severidade} (${card.classificacoes.cvss.pontuacao_base.toFixed(1)}) - ${card.classificacoes.cvss.vetor} (📊${Math.round(card.classificacoes.cvss.confianca * 100)}% confiança IA)
@@ -364,7 +365,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
           <div className="text-4xl mb-4">🚀</div>
           <h3 className="text-xl font-bold text-slate-100 mb-3">Cards de Segurança (v2)</h3>
           <p className="text-slate-300 text-sm mb-4">
-            Análise rápida e abrangente com IA. Gera cards técnicos completos com OWASP Top 10, 
+            Análise rápida e abrangente com IA. Gera cards técnicos completos com STRIDE, OWASP Top 10, 
             CWE, CVSS 4.0 e priorização ASP. Ideal para plannings ágeis.
           </p>
           <ul className="text-xs text-slate-400 text-left space-y-1">
@@ -466,7 +467,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
           {renderContent()}
         </div>
         <footer className="text-center mt-8 text-slate-500 text-sm">
-          <p>Powered by Gemini API. Criado para análise de risco ágil.</p>
+          <p>Criado para atender a proposta de pesquisa "CARCARÁ: UMA ABORDAGEM LEVE PARA MODELAGEM DE AMEAÇAS EM AMBIENTES ÁGEIS", por Marcelo Wanderley Lima.</p>
         </footer>
       </main>
     </div>

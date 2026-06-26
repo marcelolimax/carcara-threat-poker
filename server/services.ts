@@ -1,21 +1,66 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ThreatOption, AnalyzedThreat, PlayerResponse, SecurityCard, UserStoryInput, V2VotingData } from './types';
 
-if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY environment variable not set");
-}
+/**
+ * Inicializa o cliente do Gemini suportando dois provedores:
+ *  - Vertex AI (service account via variáveis de ambiente): defina
+ *    GOOGLE_GENAI_USE_VERTEXAI=true, GOOGLE_CLOUD_PROJECT, GOOGLE_CLIENT_EMAIL e
+ *    GOOGLE_PRIVATE_KEY (opcional GOOGLE_CLOUD_LOCATION, default us-central1).
+ *    Não usa arquivo JSON: as credenciais vêm direto do ambiente.
+ *  - Gemini Developer API (chave): defina GEMINI_API_KEY.
+ * O Vertex AI não usa a cota free-tier de 20 req/dia do Developer API.
+ */
+const useVertex =
+    process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' ||
+    process.env.GOOGLE_GENAI_USE_VERTEXAI === '1';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI;
+
+if (useVertex) {
+    const project = process.env.GOOGLE_CLOUD_PROJECT;
+    const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    // A private key vem em uma única linha no .env; restauramos as quebras de linha.
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!project) {
+        throw new Error("GOOGLE_CLOUD_PROJECT is required when GOOGLE_GENAI_USE_VERTEXAI is enabled");
+    }
+    if (!clientEmail || !privateKey) {
+        throw new Error("GOOGLE_CLIENT_EMAIL e GOOGLE_PRIVATE_KEY são obrigatórios para autenticar no Vertex AI via variáveis de ambiente");
+    }
+
+    ai = new GoogleGenAI({
+        vertexai: true,
+        project,
+        location,
+        googleAuthOptions: {
+            credentials: {
+                client_email: clientEmail,
+                private_key: privateKey,
+            },
+        },
+    });
+    console.log(`[IA] Usando Vertex AI (project=${project}, location=${location})`);
+} else {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error("Defina GEMINI_API_KEY (Gemini Developer API) ou GOOGLE_GENAI_USE_VERTEXAI=true com as credenciais do Vertex AI");
+    }
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    console.log('[IA] Usando Gemini Developer API (chave)');
+}
 
 export const generateThreatOptions = async (userStory: string, contextoOpcional?: string): Promise<ThreatOption[]> => {
     const contextoTexto = contextoOpcional ? `\nContexto adicional: "${contextoOpcional}"` : '';
     
     const prompt = `
-Você é o Mestre de Jogo do Carcará Threat Poker. Gere 4 alternativas de AMEAÇAS plausíveis a partir da user story abaixo.
+Você é o Mestre de Jogo do Carcará Threat Poker, especialista em modelagem de ameaças com STRIDE.
+Objetivo: ajudar a equipe a analisar riscos de forma educativa, gerando alternativas de AMEAÇA (sem mitigações) a partir da user story abaixo.
 Regras:
-- Foque na AMEAÇA (não na mitigação).
-- Inclua 2–3 opções fortes e 1–2 verossímeis porém menos prioritárias.
-- Não diga quais são corretas.
+- Foque na AMEAÇA (o PROBLEMA), não na mitigação.
+- Gere 4 alternativas distintas; 2–3 devem ser ameaças relevantes e 1–2 menos prioritárias para contraste.
+- Não inclua mitigação nesta fase e não diga quais são corretas.
+- Não explique fora do JSON; não use markdown; não repita a história.
 Saída: JSON {"options":[{"id":"A","description":"..."}, ...]}
 
 User story: "${userStory}"${contextoTexto}
@@ -72,7 +117,7 @@ export const analyzeThreats = async (
     ).join('\n');
 
     const prompt = `
-    Você é um consultor especialista em cibersegurança e análise de risco, com foco no framework OWASP SAMM. Sua tarefa é fornecer uma análise técnica para a equipe de desenvolvimento.
+    Você é uma Consultora Especialista em segurança e modelagem de ameaças (STRIDE). Sua tarefa é fornecer uma análise técnica para a equipe de desenvolvimento.
 
     Aqui está o contexto completo:
     1.  **User Story Original:** "${userStory}"
@@ -82,11 +127,14 @@ export const analyzeThreats = async (
         ${playerResponsesString}
 
     Sua tarefa é analisar CADA UMA das opções apresentadas (A, B, C, etc.) individualmente. Para cada opção, você deve:
-    1.  Avaliar a validade e a relevância da ameaça no contexto do OWASP SAMM.
+    1.  Classificar a ameaça segundo o STRIDE (uma ou mais categorias entre: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
     2.  Estimar o nível de RISCO. Use estritamente um dos seguintes valores: "baixo", "médio", "alto", "crítico".
     3.  Estimar o ESFORÇO DE MITIGAÇÃO. Use estritamente um dos seguintes valores: "baixo", "médio", "alto", "muito alto".
-    4.  Escrever uma "analysis" concisa, explicando sua avaliação de risco e esforço.
-    5.  Identificar a principal **prática de segurança do OWASP SAMM** relacionada. Formate como 'Função de Negócio > Prática de Segurança' (ex: 'Verificação > Testes de Segurança').
+    4.  Escrever uma "analysis" concisa, explicando sua avaliação de risco e esforço com base na classificação STRIDE.
+
+    Regras:
+    - Não invente bibliografia; use apenas a taxonomia STRIDE solicitada.
+    - A decisão final de priorização é da equipe.
 
     Retorne sua análise como um objeto JSON com uma única chave "analyzedOptions", que é um array de objetos. Cada objeto deve corresponder a uma das opções originais e ter a seguinte estrutura:
     {
@@ -95,7 +143,7 @@ export const analyzeThreats = async (
       "risk": "...",
       "mitigationEffort": "...",
       "analysis": "Sua análise técnica concisa para esta opção.",
-      "sammPractice": "Função > Prática"
+      "stride": ["Spoofing", "Tampering"]
     }
     `;
 
@@ -117,9 +165,9 @@ export const analyzeThreats = async (
                                 risk: { type: Type.STRING, enum: ["baixo", "médio", "alto", "crítico"] },
                                 mitigationEffort: { type: Type.STRING, enum: ["baixo", "médio", "alto", "muito alto"] },
                                 analysis: { type: Type.STRING },
-                                sammPractice: { type: Type.STRING }
+                                stride: { type: Type.ARRAY, items: { type: Type.STRING } }
                             },
-                             required: ["id", "description", "risk", "mitigationEffort", "analysis", "sammPractice"]
+                             required: ["id", "description", "risk", "mitigationEffort", "analysis", "stride"]
                         }
                     }
                 },
@@ -161,18 +209,33 @@ export const generateSecurityCards = async (
         // Find voting data for this story if available
         const storyVoting = votingData?.find(v => v.storyId === story.id);
         
-        // Generate security cards for each threat option
-        for (const option of threatOptions) {
-            const card = await generateSecurityCard(story.content, option, storyVoting);
-            allCards.push(card);
-        }
+        // Generate security cards for each threat option in parallel (reduz latência)
+        const storyCards = await Promise.all(
+            threatOptions.map(option => generateSecurityCard(story.content, option, storyVoting))
+        );
+        allCards.push(...storyCards);
     }
     
     // Calculate ASP scores and sort by priority (highest first)
     allCards.forEach(card => {
         card.asp_score = calculateASP(card.insumos_asp.risco.valor, card.insumos_asp.esforco.valor);
     });
-    
+
+    // Garante card_id único entre todos os cards. A IA pode repetir o mesmo id
+    // (ex.: "SEC-001") em chamadas independentes, o que quebra a renderização e a
+    // seleção no frontend. Aqui adicionamos um sufixo incremental em colisões.
+    const seenIds = new Set<string>();
+    allCards.forEach((card, idx) => {
+        let id = card.card_id && card.card_id.trim() !== '' ? card.card_id.trim() : `SEC-${idx + 1}`;
+        if (seenIds.has(id)) {
+            let suffix = 2;
+            while (seenIds.has(`${id}-${suffix}`)) suffix++;
+            id = `${id}-${suffix}`;
+        }
+        seenIds.add(id);
+        card.card_id = id;
+    });
+
     return allCards.sort((a, b) => (b.asp_score || 0) - (a.asp_score || 0));
 };
 
@@ -194,14 +257,15 @@ Contexto de Votação da Equipe:
 Você é consultora especialista em segurança. Analise a ameaça e produza um Card de Segurança completo.
 
 REGRAS OBRIGATÓRIAS:
-1. OWASP Top 10: escolha a categoria mais adequada com confiança 0.6-0.9
-2. CWE: identifique o CWE específico com confiança 0.6-0.9  
-3. CVSS 4.0: calcule o vetor completo com confiança 0.6-0.9
-4. Cheat Sheets: forneça 2-3 links oficiais OWASP relevantes
-5. Subtarefas: liste 3-5 ações técnicas específicas e implementáveis
-6. DoD Segurança: defina 3-4 critérios objetivos e testáveis
-7. Insumos ASP: risco (1-10) e esforço (1-10) - NÃO calcule o score final
-8. Observações: sempre inclua a frase padrão sobre CVSS/CWE serem informativos
+1. STRIDE: classifique a ameaça em uma ou mais categorias (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege)
+2. OWASP Top 10: escolha a categoria mais adequada com confiança 0.6-0.9
+3. CWE: identifique o CWE específico com confiança 0.6-0.9  
+4. CVSS 4.0: calcule o vetor completo com confiança 0.6-0.9 (apenas informativo)
+5. Cheat Sheets: forneça 2-3 links oficiais OWASP relevantes
+6. Subtarefas: liste 3-5 ações técnicas específicas e implementáveis
+7. DoD Segurança: defina 3-4 critérios objetivos e testáveis
+8. Insumos ASP: risco (1-10) e esforço (1-10) - NÃO calcule o score final
+9. Observações: sempre inclua a frase padrão sobre CVSS/CWE serem informativos
 
 EXEMPLO de subtarefas válidas:
 - "Implementar validação de entrada com sanitização"
@@ -220,7 +284,7 @@ Resposta obrigatória em JSON estrito conforme schema:
     `;
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -234,6 +298,10 @@ Resposta obrigatória em JSON estrito conforme schema:
                     classificacoes: {
                         type: Type.OBJECT,
                         properties: {
+                            stride: {
+                                type: Type.ARRAY,
+                                items: { type: Type.STRING }
+                            },
                             owasp_top10: {
                                 type: Type.OBJECT,
                                 properties: {
@@ -263,7 +331,7 @@ Resposta obrigatória em JSON estrito conforme schema:
                                 required: ["versao", "vetor", "pontuacao_base", "severidade", "confianca"]
                             }
                         },
-                        required: ["owasp_top10", "cwe", "cvss"]
+                        required: ["stride", "owasp_top10", "cwe", "cvss"]
                     },
                     cheat_sheets: {
                         type: Type.ARRAY,

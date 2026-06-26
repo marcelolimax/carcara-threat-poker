@@ -1,0 +1,24 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carcara-threat-poker
+    container_name: carcara-threat-poker
+    ports:
+      # nginx serve o frontend e faz proxy de /api/ para o backend (Node na 3000)
+      - "8080:8080"
+    # As variáveis do provedor de IA vêm direto do .env (injetadas no container).
+    # Usar env_file evita que variáveis exportadas no shell do host sobrescrevam
+    # os valores do .env, como ocorre na interpolação ${...}.
+    #
+    # Provedores suportados (defina no .env):
+    #   A) Gemini Developer API:  GEMINI_API_KEY=...
+    #   B) Vertex AI (somente env): GOOGLE_GENAI_USE_VERTEXAI=true
+    #                               GOOGLE_CLOUD_PROJECT=...
+    #                               GOOGLE_CLOUD_LOCATION=us-central1 (opcional)
+    #                               GOOGLE_CLIENT_EMAIL=...
+    #                               GOOGLE_PRIVATE_KEY=...  (em uma linha, com \n)
+    env_file:
+      - .env
+    restart: unless-stopped
