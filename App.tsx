@@ -9,11 +9,12 @@ import OptionsSelector from './components/OptionsSelector';
 import DecisionScreen from './components/DecisionScreen';
 import GamecardDisplay from './components/GamecardDisplay';
 import SecurityCardsDisplay from './components/SecurityCardsDisplay';
+import RoomGame from './components/RoomGame';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 
 type GameMode = 'solo' | 'group';
-type AppMode = 'v1' | 'v2'; // v1 = original poker, v2 = security cards
+type AppMode = 'v1' | 'v2' | 'room'; // v1 = original poker, v2 = security cards, room = multiplayer
 
 const App: React.FC = () => {
   // App mode selection
@@ -336,7 +337,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
       <p className="text-slate-400 mb-8 text-lg">
         Escolha o modo de análise de segurança para sua equipe
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         <div 
           onClick={() => setAppMode('v1')}
           className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-indigo-500 cursor-pointer transition-all duration-300 transform hover:scale-105"
@@ -375,6 +376,27 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
             <li>• Subtarefas e DoD pré-definidos</li>
           </ul>
         </div>
+
+        <div
+          onClick={() => setAppMode('room')}
+          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-purple-500 cursor-pointer transition-all duration-300 transform hover:scale-105 relative"
+        >
+          <div className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            BETA
+          </div>
+          <div className="text-4xl mb-4">👥</div>
+          <h3 className="text-xl font-bold text-slate-100 mb-3">Sala Multiplayer (v1)</h3>
+          <p className="text-slate-300 text-sm mb-4">
+            Cada participante entra pelo seu próprio dispositivo e vota em tempo real. Crie uma sala,
+            compartilhe o código e jogue o Threat Poker em grupo de verdade.
+          </p>
+          <ul className="text-xs text-slate-400 text-left space-y-1">
+            <li>• Sala com código de convite</li>
+            <li>• Persona cyberpunk (login Google em breve)</li>
+            <li>• Votação simultânea por jogador</li>
+            <li>• Revelação sincronizada</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -383,6 +405,11 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
     // Mode selection screen
     if (!appMode) {
       return renderModeSelection();
+    }
+
+    // Multiplayer room workflow
+    if (appMode === 'room') {
+      return <RoomGame onExit={handlePlayAgain} />;
     }
     
     // v2 Security Cards workflow
