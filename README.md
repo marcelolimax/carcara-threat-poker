@@ -19,6 +19,29 @@ O **Carcará Agile Threat Modeling (CATM)** é a proposta da monografia *"Carcar
 
 > 🤖 A IA é **consultiva, não prescritiva**: ela amplia o repertório da equipe e reduz a carga cognitiva da análise — mas **a decisão final de priorização e aceite é sempre da equipe**.
 
+### Como o ASP é calculado (Risco × Esforço)
+
+O valor de priorização de cada ASP é obtido por uma **multiplicação**: `ASP = R × EM`, onde `R` é o **Risco** e `EM` o **Esforço de Mitigação**. Os dois fatores são convertidos para uma escala numérica de modo que **valores maiores sempre signifiquem maior prioridade**:
+
+- **Risco — diretamente proporcional:** quanto **maior** o risco, **maior** o valor.
+- **Esforço — inversamente proporcional:** quanto **menor** o esforço de mitigação, **maior** o valor (ações mais fáceis de corrigir recebem pontuação mais alta).
+
+| Risco (R) | Valor |
+|---|---|
+| Baixo | 1 |
+| Médio | 3 |
+| Alto | 8 |
+| Crítico | 10 |
+
+| Esforço de Mitigação (EM) | Valor |
+|---|---|
+| Muito alto | 3 |
+| Alto | 5 |
+| Médio | 8 |
+| Baixo | 10 |
+
+Assim, o **score máximo** (`10 × 10 = 100`) corresponde a uma ameaça de **alto risco e baixo esforço** — a combinação mais vantajosa para priorizar. A multiplicação (em vez de uma soma) **amplifica** esse cenário e **reduz** o score quando qualquer um dos fatores é baixo, favorecendo ações com a melhor relação entre **benefício e viabilidade**.
+
 ### Tradicional × CATM (Carcará)
 
 | Aspecto | Modelagem tradicional | CATM (Carcará) |

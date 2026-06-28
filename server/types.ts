@@ -39,15 +39,16 @@ export interface CheatSheetReference {
   url: string;
 }
 
-// ASP inputs for prioritization calculation
+// ASP inputs for prioritization calculation.
+// Risco: diretamente proporcional. Esforço: inversamente proporcional (menor esforço => maior valor).
 export interface ASPInputs {
   risco: {
-    escala: '1-10';
-    valor: number; // 1-10
+    nivel: 'baixo' | 'médio' | 'alto' | 'crítico';
+    valor: number; // 1-10 (mapeado pela tabela)
   };
   esforco: {
-    escala: '1-10';
-    valor: number; // 1-10
+    nivel: 'baixo' | 'médio' | 'alto' | 'muito alto';
+    valor: number; // 1-10 (mapeado, inverso ao esforço)
   };
 }
 

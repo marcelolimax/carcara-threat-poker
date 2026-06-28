@@ -189,7 +189,13 @@ export const analyzeThreats = async (
     return parsedResponse.analyzedOptions;
 };
 
-// Calculate ASP score: risco (1-10) × esforço (1-10) = 0-100
+// Tabelas de conversão da monografia (nível -> valor), de modo que valores maiores
+// signifiquem maior prioridade. O Risco é diretamente proporcional e o Esforço de
+// Mitigação é INVERSAMENTE proporcional (menor esforço => maior valor).
+export const RISCO_VALOR: Record<string, number> = { 'baixo': 1, 'médio': 3, 'alto': 8, 'crítico': 10 };
+export const ESFORCO_VALOR: Record<string, number> = { 'muito alto': 3, 'alto': 5, 'médio': 8, 'baixo': 10 };
+
+// Calculate ASP score: R × EM (valores já convertidos pelas tabelas) = 0-100
 export const calculateASP = (risco: number, esforco: number): number => {
     return risco * esforco;
 };
@@ -264,7 +270,7 @@ REGRAS OBRIGATÓRIAS:
 5. Cheat Sheets: forneça 2-3 links oficiais OWASP relevantes
 6. Subtarefas: liste 3-5 ações técnicas específicas e implementáveis
 7. DoD Segurança: defina 3-4 critérios objetivos e testáveis
-8. Insumos ASP: risco (1-10) e esforço (1-10) - NÃO calcule o score final
+8. Insumos ASP: informe APENAS o NÍVEL de risco (baixo/médio/alto/crítico) e o NÍVEL de esforço de mitigação (baixo/médio/alto/muito alto). NÃO informe números nem calcule o score — os valores e o ASP são calculados pelo sistema. Lembre que o esforço é inversamente proporcional: menor esforço favorece a priorização.
 9. Observações: sempre inclua a frase padrão sobre CVSS/CWE serem informativos
 
 EXEMPLO de subtarefas válidas:
@@ -350,18 +356,16 @@ Resposta obrigatória em JSON estrito conforme schema:
                             risco: {
                                 type: Type.OBJECT,
                                 properties: {
-                                    escala: { type: Type.STRING, enum: ["1-10"] },
-                                    valor: { type: Type.NUMBER }
+                                    nivel: { type: Type.STRING, enum: ["baixo", "médio", "alto", "crítico"] }
                                 },
-                                required: ["escala", "valor"]
+                                required: ["nivel"]
                             },
                             esforco: {
                                 type: Type.OBJECT,
                                 properties: {
-                                    escala: { type: Type.STRING, enum: ["1-10"] },
-                                    valor: { type: Type.NUMBER }
+                                    nivel: { type: Type.STRING, enum: ["baixo", "médio", "alto", "muito alto"] }
                                 },
-                                required: ["escala", "valor"]
+                                required: ["nivel"]
                             }
                         },
                         required: ["risco", "esforco"]
@@ -399,6 +403,15 @@ Resposta obrigatória em JSON estrito conforme schema:
     if (!parsedCard.card_id || parsedCard.card_id === '') {
         parsedCard.card_id = `SEC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
+
+    // Converte os níveis informados pela IA em valores numéricos pelas tabelas da
+    // monografia. O esforço é inversamente proporcional (menor esforço => maior valor).
+    const riscoNivel = (parsedCard.insumos_asp?.risco?.nivel || 'médio').toString().toLowerCase();
+    const esforcoNivel = (parsedCard.insumos_asp?.esforco?.nivel || 'médio').toString().toLowerCase();
+    parsedCard.insumos_asp = {
+        risco: { nivel: riscoNivel, valor: RISCO_VALOR[riscoNivel] ?? 3 },
+        esforco: { nivel: esforcoNivel, valor: ESFORCO_VALOR[esforcoNivel] ?? 8 },
+    };
     
     // Set version if not provided
     if (!parsedCard.versao_esquema) {

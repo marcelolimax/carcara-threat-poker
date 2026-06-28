@@ -251,8 +251,8 @@ const App: React.FC = () => {
 
 📊 PRIORIZAÇÃO ASP:
 • Score ASP: ${card.asp_score || 0}/100
-• Risco: ${card.insumos_asp.risco.valor}/10
-• Esforço: ${card.insumos_asp.esforco.valor}/10
+• Risco: ${card.insumos_asp.risco.nivel} (R=${card.insumos_asp.risco.valor})
+• Esforço: ${card.insumos_asp.esforco.nivel} (EM=${card.insumos_asp.esforco.valor}, menor = melhor)
 • Decisão Sprint: ${card.decisao_sprint_sugerida}
 
 ✅ SUBTAREFAS DE IMPLEMENTAÇÃO:
