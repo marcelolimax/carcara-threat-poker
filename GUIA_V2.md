@@ -2,42 +2,42 @@
 
 > Novo por aqui? Comece pela [fundamentação e escolha do modo](./GUIA_DE_USO.md).
 
-Abordagem ágil para *plannings*: analisa **várias histórias de uma vez** e entrega **cards técnicos priorizados** por ASP, com **votação opcional**.
+Abordagem ágil para *plannings*: analisa **várias histórias de uma vez** e entrega **cards técnicos priorizados** por ASP. Há um modo rápido (direto) e um modo colaborativo opcional (com votação).
 
-## 1. Seleção de histórias
-O PO (ou a equipe) adiciona e seleciona 1–N histórias candidatas. Um checkbox permite **incluir votação** (modo colaborativo) ou seguir direto (modo rápido).
+## 1. Definição das histórias e contexto
+Adicione e selecione 1–N histórias candidatas e, se quiser, informe **contexto técnico** adicional. Um checkbox permite **incluir votação** (modo colaborativo) ou seguir direto (modo rápido).
 
-![Seleção de histórias](imagens/v2/v2-01-selecao-de-historias.png)
+![Definição das histórias e contexto](imagens/v2/v2-01-definicao-historias-e-contexto.png)
 
-## 2. Contexto e geração de opções
-É possível informar contexto técnico adicional. No modo colaborativo, a IA propõe ameaças por história para a votação.
+## 2. Análise da IA
+A IA processa as histórias e gera os Cards de Segurança, classificando e priorizando as ameaças.
 
-![Contexto e opções](imagens/v2/v2-02-contexto-e-opcoes.png)
+![Análise da IA](imagens/v2/v2-02-analise-da-ia.png)
 
-## 3. Votação rápida (opcional)
-No modo colaborativo, a equipe vota e justifica em 1–2 frases, dando mais contexto para a IA gerar cards mais precisos.
+## 3. Seleção dos cards e modos de visualização
+Os cards aparecem **ordenados por prioridade ASP** (maior primeiro). No topo há três visualizações — **Lista** (recolhível), **Grade** (2 colunas) e **Acordeão** (um card por vez) — e a seleção por checkbox (ou "Selecionar Todos") para o backlog.
 
-![Votação rápida](imagens/v2/v2-03-votacao-rapida.png)
+![Seleção dos cards e modos de visualização](imagens/v2/v2-03-cards-e-modos-de-visualizacao.png)
 
-## 4. Cards de Segurança gerados
-A IA gera os **Cards de Segurança**, já ordenados pela prioridade **ASP** (maior primeiro). Há três visualizações no topo: **Lista** (recolhível), **Grade** (2 colunas) e **Acordeão** (um card por vez).
+## 4. Priorização ASP e classificações técnicas
+Cada card destaca a **Priorização ASP** (score 0–100 com escala verde → vermelho e o cálculo Risco × Esforço) e as classificações **STRIDE**, **OWASP Top 10**, **CWE** e **CVSS 4.0** (informativas, com nível de confiança da IA em anel).
 
-![Cards de segurança gerados](imagens/v2/v2-04-cards-gerados.png)
+![Priorização ASP e classificações](imagens/v2/v2-04-classificacoes-e-asp.png)
 
-## 5. Detalhe do card
-Cada card traz a **classificação STRIDE**, **OWASP Top 10**, **CWE** e **CVSS 4.0** (informativos, com nível de confiança da IA em anel), além de **subtarefas**, **DoD de segurança** e **OWASP Cheat Sheets** no painel expansível.
+## 5. Subtarefas, DoD de segurança e Cheat Sheets
+No painel expansível do card estão as **subtarefas sugeridas**, o **Definition of Done de segurança** e os **OWASP Cheat Sheets** relacionados.
 
-![Detalhe do card](imagens/v2/v2-05-card-detalhe.png)
+![Subtarefas, DoD e cheat sheets](imagens/v2/v2-05-subtarefas-dod-cheatsheets.png)
 
-## 6. Priorização ASP
-O bloco de **Priorização ASP** destaca o score (0–100) com escala de cor (verde → vermelho), faixa de prioridade e o cálculo explícito **Risco × Esforço**.
+## 6. Níveis de confiança da IA
+A legenda explica os **níveis de confiança da IA** (0–100%) exibidos nas classificações técnicas — útil para identificar quando vale uma **revisão manual** por especialista.
 
-![Priorização ASP](imagens/v2/v2-06-priorizacao-asp.png)
+![Níveis de confiança da IA](imagens/v2/v2-06-niveis-de-confianca.png)
 
-## 7. Exportar para o backlog
-Selecione os cards desejados (checkbox ou "Selecionar Todos") e use **Enviar para Backlog** para exportar um texto pronto para colar no seu gerenciador de tarefas.
+## 7. Exportação do card
+Selecione os cards desejados e use **Enviar para Backlog** (ou **Copiar card**) para exportar um texto pronto para colar no seu gerenciador de tarefas.
 
-![Exportar para o backlog](imagens/v2/v2-07-exportar-backlog.png)
+![Exportação do card](imagens/v2/v2-07-exportacao-do-card.png)
 
 ---
 

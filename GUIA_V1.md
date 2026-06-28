@@ -5,39 +5,39 @@
 Modo colaborativo em etapas, ideal para **workshops e dinâmicas de equipe**, estimulando o debate sobre segurança. Gera **1 gamecard por rodada**.
 
 ## 1. Configuração
-Informe a *user story* (ou tarefa) a ser analisada e escolha entre **Jogo Solo** (individual) ou **Jogo em Grupo**.
+Escolha o modo de jogo — **Solo** (análise individual) ou **em Grupo** — e quantos jogadores participam.
 
 ![Configuração da rodada](imagens/v1/v1-01-configuracao.png)
 
-## 2. Geração de opções
-A IA, atuando como **Mestre de Jogo** (especialista em modelagem de ameaças com STRIDE), gera **4 opções de ameaça** plausíveis para a história — algumas relevantes e outras menos prioritárias, para estimular a discussão.
+## 2. Descrição da história de usuário
+Informe a *user story* (ou tarefa/funcionalidade) que será analisada.
 
-![Geração das opções de ameaça](imagens/v1/v1-02-geracao-de-opcoes.png)
+![Descrição da história de usuário](imagens/v1/v1-02-descricao-da-historia.png)
 
-## 3. Votação
-Cada jogador escolhe a ameaça que considera mais crítica.
+## 3. Geração das opções
+A IA, atuando como **Mestre de Jogo** (especialista em modelagem de ameaças com STRIDE), gera **4 opções de ameaça** plausíveis — algumas relevantes e outras menos prioritárias, para estimular a discussão.
 
-![Votação](imagens/v1/v1-03-votacao.png)
+![Geração das opções de ameaça](imagens/v1/v1-03-geracao-de-opcoes.png)
 
-## 4. Justificativa
-Além do voto, o jogador escreve uma breve justificativa — isso força a reflexão e serve de contexto para a análise.
+## 4. Escolha da melhor opção e justificativa
+Cada jogador vota na ameaça que considera mais crítica e escreve uma breve **justificativa** — isso força a reflexão e serve de contexto para a análise.
 
-![Votação com justificativa](imagens/v1/v1-04-votacao-justificativa.png)
+![Escolha e justificativa](imagens/v1/v1-04-escolha-e-justificativa.png)
 
-## 5. Análise do especialista (IA)
-Com todos os votos e justificativas, a IA analisa **cada uma das 4 opções**, indicando **Risco**, **Esforço de mitigação**, uma **análise técnica** e a **classificação STRIDE** correspondente.
+## 5. Análise da opção selecionada (IA)
+Com os votos e justificativas, a IA analisa as opções indicando **Risco**, **Esforço de mitigação**, uma **análise técnica** e a **classificação STRIDE** correspondente.
 
-![Análise do especialista](imagens/v1/v1-05-analise-do-especialista.png)
+![Análise da opção selecionada](imagens/v1/v1-05-analise-da-opcao.png)
 
 ## 6. Decisão da equipe
-A equipe discute o painel lado a lado e decide qual ameaça priorizar para mitigação.
+A equipe discute e escolhe a **melhor opção de mitigação** a ser priorizada.
 
 ![Decisão da equipe](imagens/v1/v1-06-decisao-da-equipe.png)
 
-## 7. Gamecard para o backlog
+## 7. Card para o backlog
 A aplicação gera um **Gamecard** estruturado (tarefa, ameaça escolhida, análise, classificação STRIDE e ação sugerida), pronto para copiar e colar em ferramentas como Jira, Trello ou Azure DevOps.
 
-![Gamecard final](imagens/v1/v1-07-gamecard.png)
+![Card para o backlog](imagens/v1/v1-07-gamecard.png)
 
 ---
 
