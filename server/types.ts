@@ -116,3 +116,63 @@ export interface V2AnalysisRequest {
   votingData?: V2VotingData[];
   includeVoting: boolean;
 }
+
+// ───────────────────────── Salas multiplayer (v1 grupo / v2 colaborativo) ─────────────────────────
+
+export type RoomPhase = 'lobby' | 'voting' | 'revealed' | 'decision' | 'finished';
+
+export interface Participant {
+  id: string;            // id do socket/sessão
+  name: string;          // nome da persona (ex.: "Ghost//Runner")
+  icon: string;          // emoji/ícone da persona
+  isHost: boolean;
+  connected: boolean;
+}
+
+// Voto de um participante (sem expor antes da revelação)
+export interface RoomVote {
+  participantId: string;
+  selectedOptionId: string;
+  justification: string;
+}
+
+export interface Room {
+  code: string;                          // código de convite (ex.: "CARCARA-7F3K")
+  mode: 'v1' | 'v2';                     // modo do jogo
+  phase: RoomPhase;
+  hostId: string;
+  participants: { [participantId: string]: Participant };
+  userStory?: string;                    // história em análise (v1)
+  options?: ThreatOption[];              // opções geradas
+  votes: { [participantId: string]: RoomVote };
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Snapshot enviado aos clientes (não vaza o conteúdo dos votos antes da revelação)
+export interface RoomSnapshot {
+  code: string;
+  mode: 'v1' | 'v2';
+  phase: RoomPhase;
+  hostId: string;
+  youId: string;
+  participants: Participant[];
+  userStory?: string;
+  options?: ThreatOption[];
+  votedParticipantIds: string[];         // quem já votou (sem o conteúdo)
+  votes?: RoomVote[];                    // preenchido apenas quando phase === 'revealed'
+}
+
+// Mensagens cliente -> servidor
+export type ClientMessage =
+  | { type: 'create_room'; mode: 'v1' | 'v2'; persona: { name: string; icon: string } }
+  | { type: 'join_room'; code: string; persona: { name: string; icon: string } }
+  | { type: 'leave_room' }
+  | { type: 'start_round'; userStory: string }
+  | { type: 'submit_vote'; selectedOptionId: string; justification: string }
+  | { type: 'reveal' };
+
+// Mensagens servidor -> cliente
+export type ServerMessage =
+  | { type: 'room_state'; room: RoomSnapshot }
+  | { type: 'error'; message: string };

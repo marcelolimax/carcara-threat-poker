@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import http from 'http';
 import { generateThreatOptions, analyzeThreats, generateSecurityCards } from './services';
+import { attachRoomServer } from './rooms/roomServer';
 import { V2AnalysisRequest } from './types';
 
 const app = express();
@@ -76,6 +78,11 @@ app.post('/api/v2/generate-security-cards', async (req: Request, res: Response) 
   }
 });
 
-app.listen(port, () => {
+const server = http.createServer(app);
+
+// Servidor WebSocket das salas multiplayer (em /api/ws)
+attachRoomServer(server);
+
+server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
