@@ -258,8 +258,8 @@ const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({
 
 ═══ PRIORIZAÇÃO ASP ═══
 📊 Score ASP: ${card.asp_score || 0}/100
-📈 Risco: ${card.insumos_asp.risco.valor}/10
-⚡ Esforço: ${card.insumos_asp.esforco.valor}/10
+📈 Risco: ${card.insumos_asp.risco.nivel} (R=${card.insumos_asp.risco.valor})
+⚡ Esforço: ${card.insumos_asp.esforco.nivel} (EM=${card.insumos_asp.esforco.valor}, menor = melhor)
 🚦 Decisão Sprint: ${card.decisao_sprint_sugerida}
 
 ═══ IMPLEMENTAÇÃO ═══
@@ -319,6 +319,8 @@ ${card.observacoes || 'Nenhuma observação'}
   const renderCard = (card: SecurityCard, index: number) => {
     const score = card.asp_score || 0;
     const prio = getAspPriority(score);
+    const riscoNivel = card.insumos_asp.risco.nivel;
+    const esforcoNivel = card.insumos_asp.esforco.nivel;
     const risco = card.insumos_asp.risco.valor;
     const esforco = card.insumos_asp.esforco.valor;
     const expanded = viewMode === 'carousel' || expandedCardId === card.card_id;
@@ -470,15 +472,15 @@ ${card.observacoes || 'Nenhuma observação'}
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="bg-slate-900/40 rounded-lg py-2">
-                    <div className="text-lg font-bold text-red-400">{risco}</div>
-                    <div className="text-[11px] text-slate-400">Risco (1-10)</div>
+                    <div className="text-base font-bold text-red-400 capitalize">{riscoNivel}</div>
+                    <div className="text-[11px] text-slate-400">Risco · R={risco}</div>
                   </div>
                   <div className="bg-slate-900/40 rounded-lg py-2">
-                    <div className="text-lg font-bold text-blue-400">{esforco}</div>
-                    <div className="text-[11px] text-slate-400">Esforço (1-10)</div>
+                    <div className="text-base font-bold text-blue-400 capitalize">{esforcoNivel}</div>
+                    <div className="text-[11px] text-slate-400">Esforço · EM={esforco} <span className="text-slate-500">(menor = melhor)</span></div>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2">Cálculo do ASP: {risco} × {esforco} = {score}</p>
+                <p className="text-[11px] text-slate-500 mt-2">Cálculo do ASP: R × EM = {risco} × {esforco} = {score}</p>
               </div>
             </div>
           </div>
