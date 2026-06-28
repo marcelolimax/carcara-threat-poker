@@ -2,8 +2,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server as HttpServer } from 'http';
 import { randomBytes } from 'crypto';
 import { createRoom, getRoom, saveRoom, deleteRoom, toSnapshot } from './roomStore';
-import { generateThreatOptions } from '../services';
-import { ClientMessage, ServerMessage, Room, Participant } from '../types';
+import { generateThreatOptions, analyzeThreats } from '../services';
+import { ClientMessage, ServerMessage, Room, Participant, PlayerResponse } from '../types';
 
 // Estado de conexão por socket (em memória, válido para instância única).
 interface ConnInfo { participantId: string; code?: string; }
@@ -79,16 +79,33 @@ const handleMessage = async (ws: WebSocket, raw: string) => {
             const room = await getRoom(info.code);
             if (!room) return sendError(ws, 'Sala não encontrada');
             if (room.hostId !== info.participantId) return sendError(ws, 'Apenas o host inicia a rodada');
+            // Idempotência: só inicia a partir do lobby. Bloqueia cliques repetidos
+            // (a fase muda para 'generating' antes da chamada à IA).
+            if (room.phase !== 'lobby') return sendError(ws, 'A rodada já foi iniciada');
+
+            room.phase = 'generating';
+            room.userStory = msg.userStory;
+            room.votes = {};
+            room.options = undefined;
+            await saveRoom(room);
+            await broadcastRoom(room.code);
+
             try {
                 const options = await generateThreatOptions(msg.userStory);
-                room.userStory = msg.userStory;
-                room.options = options;
-                room.votes = {};
-                room.phase = 'voting';
-                await saveRoom(room);
-                await broadcastRoom(room.code);
+                const fresh = await getRoom(info.code);
+                if (!fresh || fresh.phase !== 'generating') return; // sala mudou/saiu nesse meio-tempo
+                fresh.options = options;
+                fresh.phase = 'voting';
+                await saveRoom(fresh);
+                await broadcastRoom(fresh.code);
             } catch (e) {
                 console.error('[room] erro ao gerar opções:', e);
+                const fresh = await getRoom(info.code);
+                if (fresh) {
+                    fresh.phase = 'lobby';
+                    await saveRoom(fresh);
+                    await broadcastRoom(fresh.code);
+                }
                 sendError(ws, 'Falha ao gerar as opções de ameaça');
             }
             break;
@@ -111,9 +128,61 @@ const handleMessage = async (ws: WebSocket, raw: string) => {
             const room = await getRoom(info.code);
             if (!room) return sendError(ws, 'Sala não encontrada');
             if (room.hostId !== info.participantId) return sendError(ws, 'Apenas o host revela');
+            if (room.phase !== 'voting') return sendError(ws, 'Não há votação para revelar');
+
+            // Revela os votos imediatamente (as opções permanecem visíveis para discussão).
             room.phase = 'revealed';
             await saveRoom(room);
             await broadcastRoom(room.code);
+
+            // Em segundo plano, gera a análise da IA por opção (Risco/Esforço/STRIDE) para apoiar a decisão.
+            try {
+                const options = room.options || [];
+                const playerResponses: PlayerResponse[] = Object.values(room.votes)
+                    .map((v, idx) => {
+                        const opt = options.find((o) => o.id === v.selectedOptionId);
+                        return opt ? { playerId: idx, selectedOption: opt, justification: v.justification } : null;
+                    })
+                    .filter((x): x is PlayerResponse => x !== null);
+                if (room.userStory && options.length) {
+                    const analysis = await analyzeThreats(room.userStory, options, playerResponses);
+                    const fresh = await getRoom(info.code);
+                    if (fresh && fresh.phase === 'revealed') {
+                        fresh.analysis = analysis;
+                        await saveRoom(fresh);
+                        await broadcastRoom(fresh.code);
+                    }
+                }
+            } catch (e) {
+                console.error('[room] erro ao analisar (segue sem análise):', e);
+            }
+            break;
+        }
+        case 'decide': {
+            if (!info.code) return sendError(ws, 'Você não está em uma sala');
+            const room = await getRoom(info.code);
+            if (!room) return sendError(ws, 'Sala não encontrada');
+            if (room.hostId !== info.participantId) return sendError(ws, 'Apenas o host define a decisão');
+            if (room.phase !== 'revealed' && room.phase !== 'decision') return sendError(ws, 'A decisão só ocorre após revelar');
+            const exists = (room.options || []).some((o) => o.id === msg.optionId);
+            if (!exists) return sendError(ws, 'Opção inválida');
+            room.chosenOptionId = msg.optionId;
+            room.phase = 'decision';
+            await saveRoom(room);
+            await broadcastRoom(room.code);
+            break;
+        }
+        case 'update_persona': {
+            if (!info.code) return sendError(ws, 'Você não está em uma sala');
+            const room = await getRoom(info.code);
+            if (!room) return sendError(ws, 'Sala não encontrada');
+            const p = room.participants[info.participantId];
+            if (p) {
+                p.name = (msg.persona?.name || p.name).slice(0, 24);
+                p.icon = msg.persona?.icon || p.icon;
+                await saveRoom(room);
+                await broadcastRoom(room.code);
+            }
             break;
         }
         case 'leave_room': {

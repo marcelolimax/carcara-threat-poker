@@ -67,5 +67,7 @@ export const toSnapshot = (room: Room, youId: string): RoomSnapshot => {
         options: room.options,
         votedParticipantIds: Object.keys(room.votes),
         votes: revealed ? Object.values(room.votes) : undefined,
+        analysis: revealed ? room.analysis : undefined,
+        chosenOptionId: room.chosenOptionId,
     };
 };

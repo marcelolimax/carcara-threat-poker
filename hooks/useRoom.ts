@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Persona } from '../lib/personas';
 
-export type RoomPhase = 'lobby' | 'voting' | 'revealed' | 'decision' | 'finished';
+export type RoomPhase = 'lobby' | 'generating' | 'voting' | 'revealed' | 'decision' | 'finished';
 
 export interface RoomParticipant {
   id: string;
@@ -22,6 +22,15 @@ export interface RoomOption {
   description: string;
 }
 
+export interface RoomAnalysis {
+  id: string;
+  description: string;
+  risk: string;
+  mitigationEffort: string;
+  analysis: string;
+  stride: string[];
+}
+
 export interface RoomSnapshot {
   code: string;
   mode: 'v1' | 'v2';
@@ -33,6 +42,8 @@ export interface RoomSnapshot {
   options?: RoomOption[];
   votedParticipantIds: string[];
   votes?: RoomVote[];
+  analysis?: RoomAnalysis[];
+  chosenOptionId?: string;
 }
 
 type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed';
@@ -89,10 +100,12 @@ export const useRoom = () => {
     error,
     createRoom: (mode: 'v1' | 'v2', persona: Persona) => send({ type: 'create_room', mode, persona }),
     joinRoom: (code: string, persona: Persona) => send({ type: 'join_room', code, persona }),
+    updatePersona: (persona: Persona) => send({ type: 'update_persona', persona }),
     startRound: (userStory: string) => send({ type: 'start_round', userStory }),
     submitVote: (selectedOptionId: string, justification: string) =>
       send({ type: 'submit_vote', selectedOptionId, justification }),
     reveal: () => send({ type: 'reveal' }),
+    decide: (optionId: string) => send({ type: 'decide', optionId }),
     leave: () => send({ type: 'leave_room' }),
   };
 };

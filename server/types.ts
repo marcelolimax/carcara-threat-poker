@@ -119,7 +119,7 @@ export interface V2AnalysisRequest {
 
 // ───────────────────────── Salas multiplayer (v1 grupo / v2 colaborativo) ─────────────────────────
 
-export type RoomPhase = 'lobby' | 'voting' | 'revealed' | 'decision' | 'finished';
+export type RoomPhase = 'lobby' | 'generating' | 'voting' | 'revealed' | 'decision' | 'finished';
 
 export interface Participant {
   id: string;            // id do socket/sessão
@@ -145,6 +145,8 @@ export interface Room {
   userStory?: string;                    // história em análise (v1)
   options?: ThreatOption[];              // opções geradas
   votes: { [participantId: string]: RoomVote };
+  analysis?: AnalyzedThreat[];           // análise da IA por opção (após revelar)
+  chosenOptionId?: string;               // decisão final da equipe
   createdAt: number;
   updatedAt: number;
 }
@@ -160,17 +162,21 @@ export interface RoomSnapshot {
   userStory?: string;
   options?: ThreatOption[];
   votedParticipantIds: string[];         // quem já votou (sem o conteúdo)
-  votes?: RoomVote[];                    // preenchido apenas quando phase === 'revealed'
+  votes?: RoomVote[];                    // preenchido apenas quando phase === 'revealed'+
+  analysis?: AnalyzedThreat[];           // análise da IA por opção (após revelar)
+  chosenOptionId?: string;               // decisão final da equipe
 }
 
 // Mensagens cliente -> servidor
 export type ClientMessage =
   | { type: 'create_room'; mode: 'v1' | 'v2'; persona: { name: string; icon: string } }
   | { type: 'join_room'; code: string; persona: { name: string; icon: string } }
+  | { type: 'update_persona'; persona: { name: string; icon: string } }
   | { type: 'leave_room' }
   | { type: 'start_round'; userStory: string }
   | { type: 'submit_vote'; selectedOptionId: string; justification: string }
-  | { type: 'reveal' };
+  | { type: 'reveal' }
+  | { type: 'decide'; optionId: string };
 
 // Mensagens servidor -> cliente
 export type ServerMessage =

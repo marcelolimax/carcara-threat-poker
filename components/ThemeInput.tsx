@@ -5,9 +5,10 @@ type GameMode = 'solo' | 'group';
 
 interface GameSetupProps {
   onStartGame: (mode: GameMode, story: string, playerCount: number) => void;
+  onStartMultiplayer: () => void;
 }
 
-const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
+const GameSetup: React.FC<GameSetupProps> = ({ onStartGame, onStartMultiplayer }) => {
   const [mode, setMode] = useState<GameMode | null>(null);
   const [story, setStory] = useState('');
   const [playerCount, setPlayerCount] = useState(2);
@@ -67,10 +68,13 @@ const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
                 <button onClick={() => setMode('solo')} className="flex-1 bg-slate-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition-colors transform hover:scale-105">
                     🎮 Jogo Solo
                 </button>
-                <button onClick={() => setMode('group')} className="flex-1 bg-slate-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition-colors transform hover:scale-105">
+                <button onClick={onStartMultiplayer} className="flex-1 bg-slate-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition-colors transform hover:scale-105">
                     👨‍👩‍👧‍👦 Jogo em Grupo
                 </button>
             </div>
+            <p className="text-xs text-slate-500 mt-3 text-center">
+                No <strong>Jogo em Grupo</strong>, cada participante entra pela própria tela (sala multiplayer).
+            </p>
         </>
       ) : (
         renderSetupForm()
