@@ -2,8 +2,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server as HttpServer } from 'http';
 import { randomBytes } from 'crypto';
 import { createRoom, getRoom, saveRoom, deleteRoom, toSnapshot } from './roomStore';
-import { generateThreatOptions, analyzeThreats } from '../services';
-import { ClientMessage, ServerMessage, Room, Participant, PlayerResponse } from '../types';
+import { generateThreatOptions, analyzeThreats, generateSecurityCards } from '../services';
+import { ClientMessage, ServerMessage, Room, Participant, PlayerResponse, RoomVote, V2VotingData, UserStoryInput } from '../types';
 
 // Estado de conexão por socket (em memória, válido para instância única).
 interface ConnInfo { participantId: string; code?: string; }
@@ -42,6 +42,65 @@ const newParticipant = (id: string, persona: { name: string; icon: string }): Pa
     isHost: false,
     connected: true,
 });
+
+// Gera as opções de ameaça para a história atual do v2 (fase 'generating' -> 'voting').
+const v2GenerateCurrentOptions = async (code: string) => {
+    const room = await getRoom(code);
+    if (!room || !room.stories) return;
+    const cur = room.stories[room.currentStoryIndex || 0];
+    if (!cur) return;
+    room.phase = 'generating';
+    await saveRoom(room);
+    await broadcastRoom(code);
+    try {
+        const options = await generateThreatOptions(cur.content, room.contextoOpcional);
+        const fresh = await getRoom(code);
+        if (!fresh) return;
+        fresh.storyOptions = fresh.storyOptions || {};
+        fresh.storyOptions[cur.id] = options;
+        fresh.phase = 'voting';
+        await saveRoom(fresh);
+        await broadcastRoom(code);
+    } catch (e) {
+        console.error('[room v2] erro ao gerar opções:', e);
+        const fresh = await getRoom(code);
+        if (fresh) { fresh.phase = 'lobby'; await saveRoom(fresh); await broadcastRoom(code); }
+    }
+};
+
+// Agrega os votos (maioria + justificativas) e gera os Cards de Segurança.
+const v2GenerateCards = async (code: string, ws?: WebSocket) => {
+    const room = await getRoom(code);
+    if (!room || !room.stories) return;
+    room.phase = 'generating_cards';
+    await saveRoom(room);
+    await broadcastRoom(code);
+    try {
+        const votingData: V2VotingData[] = [];
+        for (const s of room.stories) {
+            const votes = Object.values(room.storyVotes?.[s.id] || {});
+            if (!votes.length) continue;
+            const tally: Record<string, number> = {};
+            votes.forEach((v) => { tally[v.selectedOptionId] = (tally[v.selectedOptionId] || 0) + 1; });
+            const majority = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
+            const just = votes.map((v) => v.justification).filter(Boolean).join(' | ');
+            votingData.push({ storyId: s.id, selectedOptionId: majority, quickJustification: just });
+        }
+        const userStories: UserStoryInput[] = room.stories.map((s) => ({ id: s.id, content: s.content, selected: true }));
+        const cards = await generateSecurityCards(userStories, room.contextoOpcional, votingData);
+        const fresh = await getRoom(code);
+        if (!fresh) return;
+        fresh.cards = cards;
+        fresh.phase = 'cards';
+        await saveRoom(fresh);
+        await broadcastRoom(code);
+    } catch (e) {
+        console.error('[room v2] erro ao gerar cards:', e);
+        if (ws) sendError(ws, 'Falha ao gerar os Cards de Segurança');
+        const fresh = await getRoom(code);
+        if (fresh) { fresh.phase = 'voting'; await saveRoom(fresh); await broadcastRoom(code); }
+    }
+};
 
 const handleMessage = async (ws: WebSocket, raw: string) => {
     let msg: ClientMessage;
@@ -114,13 +173,55 @@ const handleMessage = async (ws: WebSocket, raw: string) => {
             if (!info.code) return sendError(ws, 'Você não está em uma sala');
             const room = await getRoom(info.code);
             if (!room || room.phase !== 'voting') return sendError(ws, 'Votação não está aberta');
-            room.votes[info.participantId] = {
+            const vote: RoomVote = {
                 participantId: info.participantId,
                 selectedOptionId: msg.selectedOptionId,
                 justification: msg.justification,
             };
+            if (room.mode === 'v2' && room.stories && room.currentStoryIndex != null) {
+                const cur = room.stories[room.currentStoryIndex];
+                if (!cur) return;
+                room.storyVotes = room.storyVotes || {};
+                room.storyVotes[cur.id] = room.storyVotes[cur.id] || {};
+                room.storyVotes[cur.id][info.participantId] = vote;
+            } else {
+                room.votes[info.participantId] = vote;
+            }
             await saveRoom(room);
             await broadcastRoom(room.code);
+            break;
+        }
+        case 'start_v2': {
+            if (!info.code) return sendError(ws, 'Você não está em uma sala');
+            const room = await getRoom(info.code);
+            if (!room) return sendError(ws, 'Sala não encontrada');
+            if (room.hostId !== info.participantId) return sendError(ws, 'Apenas o host inicia');
+            if (room.phase !== 'lobby') return sendError(ws, 'A rodada já foi iniciada');
+            const clean = (msg.stories || []).map((s) => s.trim()).filter(Boolean);
+            if (clean.length === 0) return sendError(ws, 'Informe ao menos uma história');
+            room.stories = clean.map((content, i) => ({ id: `S${i + 1}`, content }));
+            room.contextoOpcional = msg.contexto;
+            room.currentStoryIndex = 0;
+            room.storyOptions = {};
+            room.storyVotes = {};
+            await saveRoom(room);
+            await v2GenerateCurrentOptions(room.code);
+            break;
+        }
+        case 'next_story': {
+            if (!info.code) return sendError(ws, 'Você não está em uma sala');
+            const room = await getRoom(info.code);
+            if (!room || !room.stories) return sendError(ws, 'Sala não encontrada');
+            if (room.hostId !== info.participantId) return sendError(ws, 'Apenas o host avança');
+            if (room.phase !== 'voting') return sendError(ws, 'Não está em votação');
+            const idx = room.currentStoryIndex || 0;
+            if (idx < room.stories.length - 1) {
+                room.currentStoryIndex = idx + 1;
+                await saveRoom(room);
+                await v2GenerateCurrentOptions(room.code);
+            } else {
+                await v2GenerateCards(room.code, ws);
+            }
             break;
         }
         case 'reveal': {

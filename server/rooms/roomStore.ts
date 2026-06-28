@@ -56,6 +56,21 @@ export const deleteRoom = async (code: string): Promise<void> => {
 // Monta o snapshot público (oculta o conteúdo dos votos até a revelação).
 export const toSnapshot = (room: Room, youId: string): RoomSnapshot => {
     const revealed = room.phase === 'revealed' || room.phase === 'decision' || room.phase === 'finished';
+
+    // Por padrão (v1) usa os campos diretos; no v2 mapeia a história atual para os mesmos campos.
+    let userStory = room.userStory;
+    let options = room.options;
+    let votedIds = Object.keys(room.votes);
+
+    if (room.mode === 'v2' && room.stories && room.currentStoryIndex != null) {
+        const cur = room.stories[room.currentStoryIndex];
+        if (cur) {
+            userStory = cur.content;
+            options = room.storyOptions?.[cur.id];
+            votedIds = Object.keys(room.storyVotes?.[cur.id] || {});
+        }
+    }
+
     return {
         code: room.code,
         mode: room.mode,
@@ -63,11 +78,15 @@ export const toSnapshot = (room: Room, youId: string): RoomSnapshot => {
         hostId: room.hostId,
         youId,
         participants: Object.values(room.participants),
-        userStory: room.userStory,
-        options: room.options,
-        votedParticipantIds: Object.keys(room.votes),
+        userStory,
+        options,
+        votedParticipantIds: votedIds,
         votes: revealed ? Object.values(room.votes) : undefined,
         analysis: revealed ? room.analysis : undefined,
         chosenOptionId: room.chosenOptionId,
+        stories: room.stories,
+        currentStoryIndex: room.currentStoryIndex,
+        storyCount: room.stories?.length,
+        cards: room.phase === 'cards' ? room.cards : undefined,
     };
 };

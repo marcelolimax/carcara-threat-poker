@@ -20,6 +20,7 @@ const App: React.FC = () => {
   // App mode selection
   const [appMode, setAppMode] = useState<AppMode | null>(null);
   const [v1Multiplayer, setV1Multiplayer] = useState(false);
+  const [v2Multiplayer, setV2Multiplayer] = useState(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
@@ -156,44 +157,19 @@ const App: React.FC = () => {
     setV2Stories(stories);
     setV2ContextoOpcional(contextoOpcional);
     setV2IncludeVoting(includeVoting || false);
-    
+
     if (includeVoting) {
-      // Generate threat options for voting first
-      setGameState(GameState.GENERATING_OPTIONS);
-      
-      try {
-        const threatOptionsByStory: {[storyId: string]: ThreatOption[]} = {};
-        
-        for (const story of stories.filter(s => s.selected)) {
-          const response = await fetch('/api/generate-threat-options', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userStory: story.content }),
-          });
+      // Modo colaborativo = sala multiplayer (cada um vota no próprio dispositivo).
+      setV2Multiplayer(true);
+      return;
+    }
 
-          if (!response.ok) {
-            throw new Error('Failed to generate threat options');
-          }
-
-          const data = await response.json();
-          threatOptionsByStory[story.id] = data.options;
-        }
-        
-        setV2ThreatOptionsByStory(threatOptionsByStory);
-        setGameState(GameState.VOTING);
-      } catch (err) {
-        console.error(err);
-        setError('Falha ao gerar opções de ameaças. Verifique o backend e tente novamente.');
-        setGameState(GameState.SETUP);
-      }
-    } else {
+    {
       // Direct analysis without voting
       await handleGenerateSecurityCards(stories, contextoOpcional);
     }
   }, []);
-  
+
   const handleV2VotingComplete = useCallback(async (votingData: V2VotingData[]) => {
     setV2VotingData(votingData);
     await handleGenerateSecurityCards(v2Stories, v2ContextoOpcional, votingData);
@@ -313,6 +289,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
     setGameState(GameState.SETUP);
     setError(null);
     setV1Multiplayer(false);
+    setV2Multiplayer(false);
     setUserStory('');
     setGameMode('solo');
     setPlayerCount(1);
@@ -390,6 +367,16 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
     
     // v2 Security Cards workflow
     if (appMode === 'v2') {
+      if (v2Multiplayer) {
+        return (
+          <RoomGame
+            mode="v2"
+            initialStories={v2Stories.filter((s) => s.selected).map((s) => s.content)}
+            initialContext={v2ContextoOpcional}
+            onExit={handlePlayAgain}
+          />
+        );
+      }
       switch (gameState) {
         case GameState.SETUP:
           return <MultiStorySetup onStartAnalysis={handleStartSecurityAnalysis} />;

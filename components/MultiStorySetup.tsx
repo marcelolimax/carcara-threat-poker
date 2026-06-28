@@ -150,11 +150,11 @@ const MultiStorySetup: React.FC<MultiStorySetupProps> = ({ onStartAnalysis }) =>
             />
             <div>
               <label htmlFor="include-voting" className="text-slate-200 font-medium cursor-pointer">
-                Incluir votação colaborativa
+                Incluir votação colaborativa (sala multiplayer)
               </label>
               <p className="text-sm text-slate-400 mt-1">
                 {includeVoting 
-                  ? "🏃 Modo Colaborativo: A equipe votará nas opções antes da IA gerar os cards técnicos"
+                  ? "🏃 Modo Colaborativo: abre uma sala onde cada participante entra pelo próprio dispositivo e vota por história, antes da IA gerar os cards"
                   : "⚡ Modo Rápido: A IA gerará diretamente os cards de segurança (recomendado para plannings)"
                 }
               </p>

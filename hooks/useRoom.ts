@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Persona } from '../lib/personas';
+import { SecurityCard } from '../types';
 
 export type RoomPhase = 'lobby' | 'generating' | 'voting' | 'revealed' | 'decision' | 'finished';
 
@@ -44,6 +45,11 @@ export interface RoomSnapshot {
   votes?: RoomVote[];
   analysis?: RoomAnalysis[];
   chosenOptionId?: string;
+  // v2 colaborativo
+  stories?: { id: string; content: string }[];
+  currentStoryIndex?: number;
+  storyCount?: number;
+  cards?: SecurityCard[];
 }
 
 type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed';
@@ -102,8 +108,10 @@ export const useRoom = () => {
     joinRoom: (code: string, persona: Persona) => send({ type: 'join_room', code, persona }),
     updatePersona: (persona: Persona) => send({ type: 'update_persona', persona }),
     startRound: (userStory: string) => send({ type: 'start_round', userStory }),
+    startV2: (stories: string[], contexto?: string) => send({ type: 'start_v2', stories, contexto }),
     submitVote: (selectedOptionId: string, justification: string) =>
       send({ type: 'submit_vote', selectedOptionId, justification }),
+    nextStory: () => send({ type: 'next_story' }),
     reveal: () => send({ type: 'reveal' }),
     decide: (optionId: string) => send({ type: 'decide', optionId }),
     leave: () => send({ type: 'leave_room' }),

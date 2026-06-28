@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useRoom, RoomVote } from '../hooks/useRoom';
 import { PERSONAS, Persona } from '../lib/personas';
+import SecurityCardsDisplay from './SecurityCardsDisplay';
 
 interface RoomGameProps {
   onExit: () => void;
+  mode?: 'v1' | 'v2';
+  initialStories?: string[];
+  initialContext?: string;
 }
 
-const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
+const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initialContext }) => {
+  const roomMode: 'v1' | 'v2' = mode ?? 'v1';
   const r = useRoom();
   const [persona, setPersona] = useState<Persona | null>(null);
   const [nick, setNick] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [story, setStory] = useState('');
+  const [storiesText, setStoriesText] = useState((initialStories || []).join('\n'));
+  const [contextText, setContextText] = useState(initialContext || '');
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [justification, setJustification] = useState('');
   const [starting, setStarting] = useState(false);
@@ -27,12 +34,25 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
     if (snap?.phase && snap.phase !== 'generating') setStarting(false);
   }, [snap?.phase]);
 
+  // Ao trocar de história (v2), limpa a seleção/justificativa locais.
+  useEffect(() => {
+    setSelectedOptionId(null);
+    setJustification('');
+  }, [snap?.currentStoryIndex]);
+
   const leave = () => { r.leave(); onExit(); };
 
   const handleStart = () => {
     if (starting || !story.trim()) return;
     setStarting(true);
     r.startRound(story.trim());
+  };
+
+  const handleStartV2 = () => {
+    const lines = storiesText.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (starting || lines.length === 0) return;
+    setStarting(true);
+    r.startV2(lines, contextText.trim() || undefined);
   };
 
   const pickPersona = (p: Persona) => {
@@ -100,7 +120,7 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 text-center">
             <h3 className="font-semibold text-slate-100 mb-3">Criar sala</h3>
             <button
-              onClick={() => ep && r.createRoom('v1', ep)}
+              onClick={() => ep && r.createRoom(roomMode, ep)}
               disabled={!ep}
               className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
             >
@@ -192,25 +212,52 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
         </p>
 
         {isHost ? (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-            <label className="block text-sm font-medium text-slate-300 mb-2">História de usuário</label>
-            <textarea
-              value={story}
-              onChange={(e) => setStory(e.target.value)}
-              rows={3}
-              placeholder="Como um usuário, quero..."
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500"
-            />
-            <button
-              onClick={handleStart}
-              disabled={!story.trim() || starting}
-              className="mt-3 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
-            >
-              {starting ? 'Gerando opções…' : 'Iniciar rodada'}
-            </button>
-          </div>
+          snap.mode === 'v2' ? (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+              <label className="block text-sm font-medium text-slate-300 mb-2">Histórias de usuário (uma por linha)</label>
+              <textarea
+                value={storiesText}
+                onChange={(e) => setStoriesText(e.target.value)}
+                rows={4}
+                placeholder={"Como um usuário, quero redefinir minha senha...\nComo admin, quero exportar relatórios..."}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500"
+              />
+              <label className="block text-sm font-medium text-slate-300 mt-3 mb-2">Contexto técnico (opcional)</label>
+              <input
+                value={contextText}
+                onChange={(e) => setContextText(e.target.value)}
+                placeholder="Ex.: app web em Node + Postgres, autenticação JWT…"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500"
+              />
+              <button
+                onClick={handleStartV2}
+                disabled={!storiesText.trim() || starting}
+                className="mt-3 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
+              >
+                {starting ? 'Preparando…' : 'Iniciar análise'}
+              </button>
+            </div>
+          ) : (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+              <label className="block text-sm font-medium text-slate-300 mb-2">História de usuário</label>
+              <textarea
+                value={story}
+                onChange={(e) => setStory(e.target.value)}
+                rows={3}
+                placeholder="Como um usuário, quero..."
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500"
+              />
+              <button
+                onClick={handleStart}
+                disabled={!story.trim() || starting}
+                className="mt-3 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
+              >
+                {starting ? 'Gerando opções…' : 'Iniciar rodada'}
+              </button>
+            </div>
+          )
         ) : (
-          <p className="text-slate-400 italic">Aguardando o host iniciar a rodada…</p>
+          <p className="text-slate-400 italic">Aguardando o host iniciar…</p>
         )}
 
         {r.error && <p className="text-rose-400 text-sm mt-4">{r.error}</p>}
@@ -240,6 +287,9 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
       <div className="animate-fade-in max-w-3xl mx-auto">
         {RoomHeader}
         {NickEditor}
+        {snap.mode === 'v2' && snap.storyCount ? (
+          <p className="text-xs text-purple-300 mb-2">História {(snap.currentStoryIndex ?? 0) + 1} de {snap.storyCount}</p>
+        ) : null}
         <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
           <h4 className="text-sm font-semibold text-slate-400 mb-1">📌 História</h4>
           <p className="text-slate-300 italic">"{snap.userStory}"</p>
@@ -283,13 +333,47 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit }) => {
         )}
 
         {isHost && (
-          <button onClick={r.reveal} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-            Revelar votos
-          </button>
+          snap.mode === 'v2' ? (
+            <button onClick={r.nextStory} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+              {(snap.currentStoryIndex ?? 0) < ((snap.storyCount ?? 1) - 1) ? 'Próxima história →' : '🃏 Gerar Cards de Segurança'}
+            </button>
+          ) : (
+            <button onClick={r.reveal} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+              Revelar votos
+            </button>
+          )
         )}
 
         {r.error && <p className="text-rose-400 text-sm mt-4">{r.error}</p>}
         <div className="mt-6"><button onClick={leave} className="text-slate-400 hover:text-slate-200 text-sm">← Sair da sala</button></div>
+      </div>
+    );
+  }
+
+  // ───────────────── v2: gerando cards ─────────────────
+  if (snap.phase === 'generating_cards') {
+    return (
+      <div className="animate-fade-in max-w-3xl mx-auto">
+        {RoomHeader}
+        <div className="text-center py-12">
+          <div className="inline-block w-10 h-10 border-4 border-slate-600 border-t-emerald-500 rounded-full animate-spin mb-4" />
+          <p className="text-slate-300">Gerando os Cards de Segurança com a IA…</p>
+          <p className="text-slate-500 text-sm mt-1">Consolidando os votos e classificando as ameaças.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────── v2: cards gerados ─────────────────
+  if (snap.phase === 'cards') {
+    const copySelected = (sel: any[]) => {
+      const text = (sel || []).map((c: any) => `${c.card_id} — ${c.ameaca_titulo} (ASP ${c.asp_score ?? 0})`).join('\n');
+      try { navigator.clipboard?.writeText(text); alert('✅ Cards selecionados copiados!'); } catch { /* noop */ }
+    };
+    return (
+      <div className="animate-fade-in max-w-7xl mx-auto">
+        {RoomHeader}
+        <SecurityCardsDisplay cards={snap.cards || []} onSelectCards={copySelected} onPlayAgain={leave} />
       </div>
     );
   }
