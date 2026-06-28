@@ -145,15 +145,15 @@ export interface Room {
   userStory?: string;                    // história em análise (v1)
   options?: ThreatOption[];              // opções geradas
   votes: { [participantId: string]: RoomVote };
-  analysis?: AnalyzedThreat[];           // análise da IA por opção (após revelar)
-  chosenOptionId?: string;               // decisão final da equipe
-  // ── Campos específicos do v2 colaborativo (multi-história) ──
+  analysis?: AnalyzedThreat[];           // análise da IA por opção (após revelar) — v1
+  chosenOptionId?: string;               // decisão final da equipe — v1
+  // ── Campos específicos do v2 colaborativo ──
+  // Fluxo v2: gera os Cards de Segurança e a equipe vota em QUAIS implementar.
   stories?: { id: string; content: string }[];
   contextoOpcional?: string;
-  currentStoryIndex?: number;
-  storyOptions?: { [storyId: string]: ThreatOption[] };
-  storyVotes?: { [storyId: string]: { [participantId: string]: RoomVote } };
-  cards?: SecurityCard[];
+  cards?: SecurityCard[];                // cards gerados
+  cardVotes?: { [participantId: string]: string[] }; // card_ids votados por participante
+  chosenCardIds?: string[];              // selecionados para o backlog (após revelar)
   createdAt: number;
   updatedAt: number;
 }
@@ -169,14 +169,14 @@ export interface RoomSnapshot {
   userStory?: string;
   options?: ThreatOption[];
   votedParticipantIds: string[];         // quem já votou (sem o conteúdo)
-  votes?: RoomVote[];                    // preenchido apenas quando phase === 'revealed'+
-  analysis?: AnalyzedThreat[];           // análise da IA por opção (após revelar)
-  chosenOptionId?: string;               // decisão final da equipe
-  // ── v2 colaborativo ──
-  stories?: { id: string; content: string }[];
-  currentStoryIndex?: number;
-  storyCount?: number;
-  cards?: SecurityCard[];
+  votes?: RoomVote[];                    // v1: preenchido apenas quando revelado
+  analysis?: AnalyzedThreat[];           // v1: análise da IA por opção
+  chosenOptionId?: string;               // v1: decisão final
+  // ── v2 colaborativo (votação nos cards) ──
+  cards?: SecurityCard[];                // cards gerados (visíveis a partir da votação)
+  youVotedCardIds?: string[];            // seleção do próprio participante
+  cardTally?: { [cardId: string]: number }; // contagem por card (apenas após revelar)
+  chosenCardIds?: string[];              // selecionados para o backlog (após revelar)
 }
 
 // Mensagens cliente -> servidor
@@ -188,7 +188,7 @@ export type ClientMessage =
   | { type: 'start_round'; userStory: string }
   | { type: 'start_v2'; stories: string[]; contexto?: string }
   | { type: 'submit_vote'; selectedOptionId: string; justification: string }
-  | { type: 'next_story' }
+  | { type: 'vote_cards'; cardIds: string[] }
   | { type: 'reveal' }
   | { type: 'decide'; optionId: string };
 

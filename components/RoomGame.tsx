@@ -8,14 +8,15 @@ interface RoomGameProps {
   mode?: 'v1' | 'v2';
   initialStories?: string[];
   initialContext?: string;
+  initialJoinCode?: string;
 }
 
-const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initialContext }) => {
+const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initialContext, initialJoinCode }) => {
   const roomMode: 'v1' | 'v2' = mode ?? 'v1';
   const r = useRoom();
   const [persona, setPersona] = useState<Persona | null>(null);
   const [nick, setNick] = useState('');
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(initialJoinCode || '');
   const [story, setStory] = useState('');
   const [storiesText, setStoriesText] = useState((initialStories || []).join('\n'));
   const [contextText, setContextText] = useState(initialContext || '');
@@ -24,6 +25,7 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
   const [starting, setStarting] = useState(false);
   const [editingNick, setEditingNick] = useState(false);
   const [nickDraft, setNickDraft] = useState('');
+  const [cardSel, setCardSel] = useState<Set<string>>(new Set());
 
   const snap = r.room;
   const me = snap?.participants.find((p) => p.id === snap.youId);
@@ -34,11 +36,22 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
     if (snap?.phase && snap.phase !== 'generating') setStarting(false);
   }, [snap?.phase]);
 
-  // Ao trocar de história (v2), limpa a seleção/justificativa locais.
+  // Semente da seleção de cards (v2) ao entrar na votação.
   useEffect(() => {
-    setSelectedOptionId(null);
-    setJustification('');
-  }, [snap?.currentStoryIndex]);
+    if (snap?.mode === 'v2' && snap.phase === 'voting') {
+      setCardSel(new Set(snap.youVotedCardIds || []));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap?.phase]);
+
+  const toggleCardVote = (id: string) => {
+    setCardSel((prev) => {
+      const n = new Set<string>(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      r.voteCards(Array.from(n));
+      return n;
+    });
+  };
 
   const leave = () => { r.leave(); onExit(); };
 
@@ -234,7 +247,7 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
                 disabled={!storiesText.trim() || starting}
                 className="mt-3 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
               >
-                {starting ? 'Preparando…' : 'Iniciar análise'}
+                {starting ? 'Preparando…' : '🃏 Gerar Cards de Segurança'}
               </button>
             </div>
           ) : (
@@ -281,15 +294,40 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
     );
   }
 
-  // ───────────────── Votação ─────────────────
+  // ───────────────── Votação v2 (escolher quais cards implementar) ─────────────────
+  if (snap.phase === 'voting' && snap.mode === 'v2') {
+    return (
+      <div className="animate-fade-in max-w-7xl mx-auto">
+        {RoomHeader}
+        {NickEditor}
+        <div className="mb-4 p-3 rounded-lg border border-slate-700 bg-slate-800/40 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-slate-300 text-sm">
+            Marque os cards que devem entrar no backlog · <strong>{snap.votedParticipantIds.length}/{snap.participants.length}</strong> votaram
+          </span>
+          {isHost && (
+            <button onClick={r.reveal} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+              Revelar votação
+            </button>
+          )}
+        </div>
+        <SecurityCardsDisplay
+          cards={(snap.cards || []) as any}
+          onSelectCards={() => {}}
+          onPlayAgain={leave}
+          collab={{ mode: 'vote', votedCardIds: Array.from(cardSel), onToggleVote: toggleCardVote }}
+        />
+        {r.error && <p className="text-rose-400 text-sm mt-4">{r.error}</p>}
+        <div className="mt-6"><button onClick={leave} className="text-slate-400 hover:text-slate-200 text-sm">← Sair da sala</button></div>
+      </div>
+    );
+  }
+
+  // ───────────────── Votação v1 ─────────────────
   if (snap.phase === 'voting') {
     return (
       <div className="animate-fade-in max-w-3xl mx-auto">
         {RoomHeader}
         {NickEditor}
-        {snap.mode === 'v2' && snap.storyCount ? (
-          <p className="text-xs text-purple-300 mb-2">História {(snap.currentStoryIndex ?? 0) + 1} de {snap.storyCount}</p>
-        ) : null}
         <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
           <h4 className="text-sm font-semibold text-slate-400 mb-1">📌 História</h4>
           <p className="text-slate-300 italic">"{snap.userStory}"</p>
@@ -333,15 +371,9 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
         )}
 
         {isHost && (
-          snap.mode === 'v2' ? (
-            <button onClick={r.nextStory} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-              {(snap.currentStoryIndex ?? 0) < ((snap.storyCount ?? 1) - 1) ? 'Próxima história →' : '🃏 Gerar Cards de Segurança'}
-            </button>
-          ) : (
-            <button onClick={r.reveal} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-              Revelar votos
-            </button>
-          )
+          <button onClick={r.reveal} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            Revelar votos
+          </button>
         )}
 
         {r.error && <p className="text-rose-400 text-sm mt-4">{r.error}</p>}
@@ -364,21 +396,41 @@ const RoomGame: React.FC<RoomGameProps> = ({ onExit, mode, initialStories, initi
     );
   }
 
-  // ───────────────── v2: cards gerados ─────────────────
-  if (snap.phase === 'cards') {
-    const copySelected = (sel: any[]) => {
-      const text = (sel || []).map((c: any) => `${c.card_id} — ${c.ameaca_titulo} (ASP ${c.asp_score ?? 0})`).join('\n');
+  // ───────────────── v2: resultado da votação dos cards ─────────────────
+  if (snap.mode === 'v2') {
+    const tally = snap.cardTally || {};
+    const chosenSet = new Set(snap.chosenCardIds || []);
+    const copyChosen = () => {
+      const chosenCards = (snap.cards || []).filter((c) => chosenSet.has(c.card_id));
+      const text = chosenCards.length
+        ? chosenCards.map((c: any) =>
+            `🎴 ${c.ameaca_titulo} (ASP ${c.asp_score ?? 0})\n📝 História: ${c.user_story}\n⚠️ Ameaça: ${c.descricao_ameaca}\n🏷️ STRIDE: ${(c.classificacoes?.stride || []).join(', ')} | ${c.classificacoes?.owasp_top10?.categoria || ''} | ${c.classificacoes?.cwe?.id || ''}`
+          ).join('\n\n')
+        : 'Nenhum card selecionado pela equipe.';
       try { navigator.clipboard?.writeText(text); alert('✅ Cards selecionados copiados!'); } catch { /* noop */ }
     };
+    const sorted = (snap.cards || []).slice().sort((a, b) => (tally[b.card_id] || 0) - (tally[a.card_id] || 0));
     return (
       <div className="animate-fade-in max-w-7xl mx-auto">
         {RoomHeader}
-        <SecurityCardsDisplay cards={snap.cards || []} onSelectCards={copySelected} onPlayAgain={leave} />
+        <div className="mb-4 p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-emerald-300">✅ {chosenSet.size} card(s) selecionado(s) pela equipe (maioria)</span>
+          <button onClick={copyChosen} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-sm">
+            📋 Copiar selecionados para o backlog
+          </button>
+        </div>
+        <SecurityCardsDisplay
+          cards={sorted as any}
+          onSelectCards={() => {}}
+          onPlayAgain={leave}
+          collab={{ mode: 'result', votedCardIds: [], voteCounts: tally, chosenCardIds: snap.chosenCardIds || [] }}
+        />
+        <div className="mt-6"><button onClick={leave} className="text-slate-400 hover:text-slate-200 text-sm">← Sair da sala</button></div>
       </div>
     );
   }
 
-  // ───────────────── Revelação + Decisão ─────────────────
+  // ───────────────── Revelação + Decisão (v1) ─────────────────
   // (phase 'revealed' ou 'decision') — as opções permanecem visíveis para discussão.
   const votesByOption: Record<string, RoomVote[]> = {};
   (snap.votes || []).forEach((v) => {

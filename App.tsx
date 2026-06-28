@@ -21,6 +21,8 @@ const App: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode | null>(null);
   const [v1Multiplayer, setV1Multiplayer] = useState(false);
   const [v2Multiplayer, setV2Multiplayer] = useState(false);
+  const [roomJoin, setRoomJoin] = useState(false);
+  const [roomJoinCode, setRoomJoinCode] = useState('');
   
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
@@ -290,6 +292,8 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
     setError(null);
     setV1Multiplayer(false);
     setV2Multiplayer(false);
+    setRoomJoin(false);
+    setRoomJoinCode('');
     setUserStory('');
     setGameMode('solo');
     setPlayerCount(1);
@@ -356,12 +360,36 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
           </ul>
         </div>
       </div>
+
+      {/* Entrar em uma sala existente (multiplayer) */}
+      <div className="max-w-xl mx-auto mt-8 p-5 bg-slate-800/40 border border-slate-700 rounded-xl">
+        <h3 className="text-slate-200 font-semibold mb-1">👥 Entrar em uma sala</h3>
+        <p className="text-slate-400 text-sm mb-3">Recebeu um código de convite? Entre direto na sala multiplayer.</p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            value={roomJoinCode}
+            onChange={(e) => setRoomJoinCode(e.target.value.toUpperCase())}
+            placeholder="CARCARA-XXXX"
+            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 text-center font-mono"
+          />
+          <button
+            onClick={() => roomJoinCode.trim() && setRoomJoin(true)}
+            disabled={!roomJoinCode.trim()}
+            className="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed"
+          >
+            Entrar na sala
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   const renderContent = () => {
     // Mode selection screen
     if (!appMode) {
+      if (roomJoin) {
+        return <RoomGame onExit={handlePlayAgain} initialJoinCode={roomJoinCode} />;
+      }
       return renderModeSelection();
     }
     

@@ -45,11 +45,11 @@ export interface RoomSnapshot {
   votes?: RoomVote[];
   analysis?: RoomAnalysis[];
   chosenOptionId?: string;
-  // v2 colaborativo
-  stories?: { id: string; content: string }[];
-  currentStoryIndex?: number;
-  storyCount?: number;
+  // v2 colaborativo (votação nos cards)
   cards?: SecurityCard[];
+  youVotedCardIds?: string[];
+  cardTally?: { [cardId: string]: number };
+  chosenCardIds?: string[];
 }
 
 type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed';
@@ -111,7 +111,7 @@ export const useRoom = () => {
     startV2: (stories: string[], contexto?: string) => send({ type: 'start_v2', stories, contexto }),
     submitVote: (selectedOptionId: string, justification: string) =>
       send({ type: 'submit_vote', selectedOptionId, justification }),
-    nextStory: () => send({ type: 'next_story' }),
+    voteCards: (cardIds: string[]) => send({ type: 'vote_cards', cardIds }),
     reveal: () => send({ type: 'reveal' }),
     decide: (optionId: string) => send({ type: 'decide', optionId }),
     leave: () => send({ type: 'leave_room' }),

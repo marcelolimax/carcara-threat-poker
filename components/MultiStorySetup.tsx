@@ -42,7 +42,14 @@ const MultiStorySetup: React.FC<MultiStorySetupProps> = ({ onStartAnalysis }) =>
   const handleStartAnalysis = () => {
     const validStories = stories.filter(story => story.content.trim() !== '');
     const selectedValidStories = validStories.filter(story => story.selected);
-    
+
+    // No modo colaborativo (sala multiplayer), o host pode definir as histórias
+    // dentro da sala — e participantes entram só com o código, sem histórias aqui.
+    if (includeVoting) {
+      onStartAnalysis(validStories, contextoOpcional.trim() || undefined, true);
+      return;
+    }
+
     if (selectedValidStories.length === 0) {
       alert('Selecione pelo menos uma história válida para análise.');
       return;
@@ -166,10 +173,12 @@ const MultiStorySetup: React.FC<MultiStorySetupProps> = ({ onStartAnalysis }) =>
       <div className="text-center">
         <button
           onClick={handleStartAnalysis}
-          disabled={selectedCount === 0}
+          disabled={!includeVoting && selectedCount === 0}
           className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:scale-100 disabled:from-slate-600 disabled:to-slate-600"
         >
-          🚀 Gerar Cards de Segurança ({selectedCount} {selectedCount === 1 ? 'história' : 'histórias'})
+          {includeVoting
+            ? '👥 Entrar / criar sala multiplayer'
+            : `🚀 Gerar Cards de Segurança (${selectedCount} ${selectedCount === 1 ? 'história' : 'histórias'})`}
         </button>
       </div>
 
