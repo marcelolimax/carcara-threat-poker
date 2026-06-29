@@ -9,6 +9,7 @@ import OptionsSelector from './components/OptionsSelector';
 import DecisionScreen from './components/DecisionScreen';
 import GamecardDisplay from './components/GamecardDisplay';
 import SecurityCardsDisplay from './components/SecurityCardsDisplay';
+import NavalGame from './components/NavalGame';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 
@@ -18,6 +19,7 @@ type AppMode = 'v1' | 'v2'; // v1 = original poker, v2 = security cards
 const App: React.FC = () => {
   // App mode selection
   const [appMode, setAppMode] = useState<AppMode | null>(null);
+  const [naval, setNaval] = useState(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
@@ -308,6 +310,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
   const handlePlayAgain = () => {
     // Reset all state to initial values
     setAppMode(null);
+    setNaval(false);
     setGameState(GameState.SETUP);
     setError(null);
     setUserStory('');
@@ -336,7 +339,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
       <p className="text-slate-400 mb-8 text-lg">
         Escolha o modo de análise de segurança para sua equipe
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         <div 
           onClick={() => setAppMode('v1')}
           className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-indigo-500 cursor-pointer transition-all duration-300 transform hover:scale-105"
@@ -375,6 +378,27 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
             <li>• Subtarefas e DoD pré-definidos</li>
           </ul>
         </div>
+
+        <div
+          onClick={() => setNaval(true)}
+          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-cyan-500 cursor-pointer transition-all duration-300 transform hover:scale-105 relative"
+        >
+          <div className="absolute -top-2 -right-2 bg-cyan-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            JOGO
+          </div>
+          <div className="text-4xl mb-4">🚢</div>
+          <h3 className="text-xl font-bold text-slate-100 mb-3">Carcará Naval</h3>
+          <p className="text-slate-300 text-sm mb-4">
+            Caça-ameaças no estilo batalha naval. A IA esconde ameaças numa matriz STRIDE
+            e você as encontra acertando as células certas. Treino divertido de modelagem.
+          </p>
+          <ul className="text-xs text-slate-400 text-left space-y-1">
+            <li>• Tabuleiro Componente × STRIDE</li>
+            <li>• Cenários gerados por tema</li>
+            <li>• Pontos por severidade + precisão</li>
+            <li>• Feedback educativo a cada tiro</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -382,6 +406,9 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
   const renderContent = () => {
     // Mode selection screen
     if (!appMode) {
+      if (naval) {
+        return <NavalGame onExit={handlePlayAgain} />;
+      }
       return renderModeSelection();
     }
     
