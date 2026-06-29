@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { SecurityCard } from '../types';
 
+// Modo colaborativo (sala multiplayer): a votação é nos próprios cards.
+export interface CollabProps {
+  mode: 'vote' | 'result';
+  votedCardIds: string[];                 // votos do próprio participante (modo 'vote')
+  onToggleVote?: (cardId: string) => void;
+  voteCounts?: { [cardId: string]: number }; // modo 'result'
+  chosenCardIds?: string[];               // modo 'result'
+}
+
 interface SecurityCardsDisplayProps {
   cards: SecurityCard[];
   onSelectCards: (selectedCards: SecurityCard[]) => void;
   onPlayAgain: () => void;
+  collab?: CollabProps;
 }
 
 type ViewMode = 'list' | 'grid' | 'carousel';
@@ -205,7 +215,8 @@ const CVSSSeverityBadge: React.FC<{ severity: string; score: number }> = ({ seve
 const SecurityCardsDisplay: React.FC<SecurityCardsDisplayProps> = ({ 
   cards, 
   onSelectCards, 
-  onPlayAgain 
+  onPlayAgain,
+  collab,
 }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -327,28 +338,35 @@ ${card.observacoes || 'Nenhuma observação'}
     const showDetails = detailsCardId === card.card_id;
     const collapsible = viewMode !== 'carousel';
 
-    const checkbox = (
+    // Modo colaborativo (sala): checkbox = voto; mostra contagem/seleção.
+    const isVoted = collab?.mode === 'vote' && collab.votedCardIds.includes(card.card_id);
+    const voteCount = collab?.voteCounts?.[card.card_id];
+    const isChosen = !!collab?.chosenCardIds?.includes(card.card_id);
+    const checkedState = collab ? !!isVoted : selectedCardIds.has(card.card_id);
+    const highlighted = collab ? (isVoted || isChosen) : selectedCardIds.has(card.card_id);
+
+    const checkbox = (!collab || collab.mode === 'vote') ? (
       <label
         className="relative flex items-center cursor-pointer mt-1"
         onClick={(e) => e.stopPropagation()}
       >
         <input
           type="checkbox"
-          checked={selectedCardIds.has(card.card_id)}
-          onChange={() => toggleCardSelection(card.card_id)}
+          checked={checkedState}
+          onChange={() => (collab ? collab.onToggleVote?.(card.card_id) : toggleCardSelection(card.card_id))}
           className="sr-only peer"
         />
         <div className={`relative w-6 h-6 rounded border-2 transition-all duration-200 flex items-center justify-center ${
-          selectedCardIds.has(card.card_id)
+          checkedState
             ? 'bg-indigo-600 border-indigo-600 text-white'
             : 'border-slate-500 bg-slate-800 hover:border-indigo-400'
         }`}>
-          {selectedCardIds.has(card.card_id) && (
+          {checkedState && (
             <span className="text-sm font-bold">✓</span>
           )}
         </div>
       </label>
-    );
+    ) : null;
 
     const headerContent = (
       <div className="flex items-start justify-between gap-4">
@@ -365,6 +383,12 @@ ${card.observacoes || 'Nenhuma observação'}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <AspScoreBadge score={score} />
+          {voteCount != null && (
+            <span className="text-xs px-2 py-1 rounded-full border border-slate-600 text-slate-300 whitespace-nowrap">{voteCount} voto(s)</span>
+          )}
+          {isChosen && (
+            <span className="text-xs px-2 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 whitespace-nowrap">✓ Selecionado</span>
+          )}
           {collapsible && (
             <ChevronRightIcon className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
           )}
@@ -379,7 +403,7 @@ ${card.observacoes || 'Nenhuma observação'}
           key={`${card.card_id}-${index}`}
           onClick={() => setExpandedCardId(card.card_id)}
           className={`bg-slate-800/50 rounded-xl border p-5 cursor-pointer transition-all duration-200 ${
-            selectedCardIds.has(card.card_id)
+            highlighted
               ? 'border-indigo-500 shadow-lg shadow-indigo-500/20'
               : 'border-slate-700 hover:border-slate-600'
           }`}
@@ -395,7 +419,7 @@ ${card.observacoes || 'Nenhuma observação'}
         className={`bg-slate-800/50 rounded-xl border transition-all duration-200 ${
           viewMode === 'grid' ? 'md:col-span-2' : ''
         } ${
-          selectedCardIds.has(card.card_id)
+          highlighted
             ? 'border-indigo-500 shadow-lg shadow-indigo-500/20'
             : 'border-slate-700 hover:border-slate-600'
         }`}
@@ -668,28 +692,34 @@ ${card.observacoes || 'Nenhuma observação'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-700">
-            <StackIcon className="w-5 h-5 text-indigo-300" />
-            <div className="text-right leading-tight">
-              <div className="text-sm font-bold text-slate-100">{selectedCardIds.size} de {cards.length}</div>
-              <div className="text-[11px] text-slate-400">selecionados</div>
+          {!collab && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-700">
+              <StackIcon className="w-5 h-5 text-indigo-300" />
+              <div className="text-right leading-tight">
+                <div className="text-sm font-bold text-slate-100">{selectedCardIds.size} de {cards.length}</div>
+                <div className="text-[11px] text-slate-400">selecionados</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Toolbar */}
         <div className="mt-4 flex items-center gap-3 flex-wrap bg-slate-900/40 border border-slate-700 rounded-xl p-2">
-          <span className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300">
-            <TargetIcon className="w-4 h-4 text-indigo-300" />
-            {selectedCardIds.size} de {cards.length} selecionados
-          </span>
-          <button
-            onClick={handleSelectAll}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
-          >
-            <CheckCircleIcon className="w-4 h-4" />
-            {selectedCardIds.size === cards.length ? 'Desselecionar Todos' : 'Selecionar Todos'}
-          </button>
+          {!collab && (
+            <>
+              <span className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300">
+                <TargetIcon className="w-4 h-4 text-indigo-300" />
+                {selectedCardIds.size} de {cards.length} selecionados
+              </span>
+              <button
+                onClick={handleSelectAll}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                {selectedCardIds.size === cards.length ? 'Desselecionar Todos' : 'Selecionar Todos'}
+              </button>
+            </>
+          )}
 
           {/* Alternador de visualização */}
           <div className="ml-auto inline-flex rounded-lg border border-slate-600 overflow-hidden bg-slate-800/60">
@@ -773,6 +803,7 @@ ${card.observacoes || 'Nenhuma observação'}
       )}
 
       {/* Footer Actions */}
+      {!collab && (
       <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
         <button
           onClick={handleSelectForBacklog}
@@ -789,6 +820,7 @@ ${card.observacoes || 'Nenhuma observação'}
           🔄 Nova Análise
         </button>
       </div>
+      )}
 
       <div className="mt-6 space-y-4">
         {/* Banner: classificações informativas */}
