@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "Se você usar este software ou a pesquisa associada, por favor cite conforme abaixo."
+title: "Carcará Threat Poker"
+abstract: >-
+  Ferramenta que operacionaliza o método Carcará Agile Threat Modeling (CATM):
+  uma abordagem leve para modelagem de ameaças integrada ao planejamento ágil,
+  com IA consultiva, classificação STRIDE/OWASP Top 10/CWE/CVSS e priorização ASP.
+type: software
+authors:
+  - family-names: "Wanderley Lima"
+    given-names: "Marcelo"
+license: Apache-2.0
+repository-code: "https://github.com/marcelolimax/carcara-threat-poker"
+keywords:
+  - threat modeling
+  - modelagem de ameaças
+  - STRIDE
+  - DevSecOps
+  - agile
+  - shift-left security
+references:
+  - type: thesis
+    title: "CARCARÁ: UMA ABORDAGEM LEVE PARA MODELAGEM DE AMEAÇAS EM AMBIENTES ÁGEIS"
+    authors:
+      - family-names: "Wanderley Lima"
+        given-names: "Marcelo"
+    year: 2026
