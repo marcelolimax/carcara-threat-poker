@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'http';
-import { generateThreatOptions, analyzeThreats, generateSecurityCards, generateNavalBoard } from './services';
+import { generateThreatOptions, analyzeThreats, generateSecurityCards } from './services';
 import { attachRoomServer } from './rooms/roomServer';
 import { V2AnalysisRequest } from './types';
 
@@ -75,18 +75,6 @@ app.post('/api/v2/generate-security-cards', async (req: Request, res: Response) 
   } catch (error) {
     console.error('Error generating security cards:', error);
     res.status(500).json({ error: 'An error occurred while generating security cards' });
-  }
-});
-
-// Carcará Naval — gera um tabuleiro STRIDE (jogo de treino solo)
-app.post('/api/naval/new-game', async (req: Request, res: Response) => {
-  const { theme } = req.body || {};
-  try {
-    const board = await generateNavalBoard(theme || '');
-    res.json(board);
-  } catch (error) {
-    console.error('Error generating naval board:', error);
-    res.status(500).json({ error: 'An error occurred while generating the naval board' });
   }
 });
 
