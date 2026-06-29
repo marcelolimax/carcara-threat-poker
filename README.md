@@ -232,3 +232,17 @@ Retorne sua análise como um objeto JSON com uma única chave "analyzedOptions",
 ```
 
 A utilização desses dois prompts em sequência garante um fluxo de jogo que é ao mesmo tempo criativo, educativo e tecnicamente fundamentado, transformando a análise de risco em um pilar da cultura de desenvolvimento seguro.
+
+## 📄 Licença e citação
+
+Este projeto é resultado da pesquisa **"CARCARÁ: UMA ABORDAGEM LEVE PARA MODELAGEM DE AMEAÇAS EM AMBIENTES ÁGEIS"**, de **Marcelo Wanderley Lima**.
+
+- **Código-fonte**: licenciado sob **[Apache License 2.0](./LICENSE)** (uso livre, inclusive comercial, com atribuição e concessão de patentes).
+- **Conteúdo acadêmico** (dissertação, guias, imagens): licenciado sob **[CC BY-NC 4.0](./LICENSE-CONTENT.md)** (atribuição, **uso não comercial**).
+- Veja também o arquivo **[NOTICE](./NOTICE)**.
+
+> © 2026 Marcelo Wanderley Lima.
+
+### Como citar
+
+Use o arquivo **[`CITATION.cff`](./CITATION.cff)** (o GitHub exibe o botão *"Cite this repository"*) ou referencie a dissertação e este repositório.

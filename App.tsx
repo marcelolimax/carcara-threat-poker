@@ -489,6 +489,9 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
         </div>
         <footer className="text-center mt-8 text-slate-500 text-sm">
           <p>Criado para atender a proposta de pesquisa "CARCARÁ: UMA ABORDAGEM LEVE PARA MODELAGEM DE AMEAÇAS EM AMBIENTES ÁGEIS", por Marcelo Wanderley Lima.</p>
+          <p className="mt-1 text-xs text-slate-600">
+            © 2026 Marcelo Wanderley Lima · Código sob Apache-2.0 · Conteúdo acadêmico sob CC BY-NC 4.0
+          </p>
         </footer>
       </main>
     </div>
