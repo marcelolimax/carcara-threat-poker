@@ -422,7 +422,7 @@ Resposta obrigatória em JSON estrito conforme schema:
 };
 
 
-// ───────────────────────── Carcará Naval (jogo de taxonomia STRIDE) ─────────────────────────
+// ───────────────────────── Carcará Rush (quiz arcade de taxonomia STRIDE) ─────────────────────────
 
 export const STRIDE_CATEGORIES = [
     'Spoofing',
@@ -433,46 +433,29 @@ export const STRIDE_CATEGORIES = [
     'Elevation of Privilege',
 ];
 
-// Pontos por severidade da ameaça (usado no placar do jogo).
-export const NAVAL_POINTS: Record<string, number> = { baixo: 10, medio: 30, alto: 60, critico: 100 };
-
-export interface NavalCell {
-    stride: string;
-    hasThreat: boolean;
-    titulo?: string;
-    descricao?: string;
-    severidade?: 'baixo' | 'medio' | 'alto' | 'critico';
-    owasp?: string;
-    cwe?: string;
-    motivo?: string; // por que NÃO há ameaça relevante (água)
+export interface RushQuestion {
+    scenario: string;     // cenário curto de ameaça
+    stride: string;       // categoria STRIDE correta
+    explicacao: string;   // por que é essa categoria
 }
 
-export interface NavalComponent {
-    id: string;
-    name: string;
-    cells: NavalCell[];
-}
+// Gera um lote de perguntas para o quiz (classificar a ameaça no STRIDE correto).
+// Lote único por chamada para o jogo rodar sem latência por pergunta.
+export const generateRushQuestions = async (theme: string, count = 10): Promise<RushQuestion[]> => {
+    const tema = (theme || '').trim();
+    const temaTxt = tema ? ` Use cenários variados no contexto de: "${tema}".` : ' Use cenários variados de sistemas diversos (web, mobile, APIs, IoT, nuvem).';
+    const n = Math.max(5, Math.min(20, count));
 
-export interface NavalBoard {
-    theme: string;
-    components: NavalComponent[];
-    totalThreats: number;
-}
-
-// Gera o tabuleiro STRIDE: para cada componente, marca quais categorias têm ameaça.
-export const generateNavalBoard = async (theme: string): Promise<NavalBoard> => {
-    const tema = (theme || 'aplicação web genérica').trim();
     const prompt = `
-Você é o Mestre de Jogo do "Carcará Naval", um jogo educativo de modelagem de ameaças com STRIDE.
-Gere um tabuleiro para um sistema FICTÍCIO do tema: "${tema}".
+Você é o Mestre de Jogo do "Carcará Rush", um quiz rápido de modelagem de ameaças.
+Gere ${n} perguntas distintas. Cada pergunta descreve UM cenário concreto de ameaça de segurança em 1-2 frases, e tem UMA categoria STRIDE correta.${temaTxt}
+
+Categorias STRIDE válidas (use exatamente estes rótulos): Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege.
 
 Regras:
-- Crie EXATAMENTE 4 componentes/funcionalidades plausíveis para esse sistema (ex.: "Autenticação", "API de Pagamento", "Upload de Arquivos", "Painel Admin").
-- Para CADA componente, avalie as 6 categorias STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
-  - Onde houver ameaça realista: hasThreat=true e preencha titulo (curto), descricao (1 frase), severidade (baixo|medio|alto|critico), owasp (categoria OWASP Top 10) e cwe (ex.: CWE-287).
-  - Onde NÃO houver ameaça relevante: hasThreat=false e preencha "motivo" (1 frase curta explicando por que aquela categoria não é prioritária ali). Deixe os campos de ameaça vazios.
-- No total, distribua entre 7 e 11 ameaças no tabuleiro (NÃO marque todas as células como ameaça; o jogo precisa ter "água").
-- Cada componente deve ter as 6 categorias STRIDE, na ordem: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege.
+- O cenário deve deixar a categoria identificável por quem conhece STRIDE, mas sem citar o nome da categoria nem entregá-la de graça.
+- Varie as categorias ao longo das perguntas (não repita sempre a mesma).
+- "explicacao": 1 frase curta dizendo por que é aquela categoria.
 - Responda SOMENTE no JSON do schema.`;
 
     const response = await ai.models.generateContent({
@@ -483,65 +466,30 @@ Regras:
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    theme: { type: Type.STRING },
-                    components: {
+                    questions: {
                         type: Type.ARRAY,
                         items: {
                             type: Type.OBJECT,
                             properties: {
-                                name: { type: Type.STRING },
-                                cells: {
-                                    type: Type.ARRAY,
-                                    items: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            stride: { type: Type.STRING, enum: STRIDE_CATEGORIES },
-                                            hasThreat: { type: Type.BOOLEAN },
-                                            titulo: { type: Type.STRING },
-                                            descricao: { type: Type.STRING },
-                                            severidade: { type: Type.STRING, enum: ['baixo', 'medio', 'alto', 'critico'] },
-                                            owasp: { type: Type.STRING },
-                                            cwe: { type: Type.STRING },
-                                            motivo: { type: Type.STRING },
-                                        },
-                                        required: ['stride', 'hasThreat'],
-                                    },
-                                },
+                                scenario: { type: Type.STRING },
+                                stride: { type: Type.STRING, enum: STRIDE_CATEGORIES },
+                                explicacao: { type: Type.STRING },
                             },
-                            required: ['name', 'cells'],
+                            required: ['scenario', 'stride', 'explicacao'],
                         },
                     },
                 },
-                required: ['theme', 'components'],
+                required: ['questions'],
             },
         },
     });
 
     const jsonString = response?.text ? response.text.trim() : null;
-    if (!jsonString) throw new Error('Empty response from Gemini API for naval board.');
+    if (!jsonString) throw new Error('Empty response from Gemini API for rush questions.');
     const parsed = JSON.parse(jsonString);
-
-    // Normaliza: ids, garante as 6 categorias por componente e conta ameaças.
-    let totalThreats = 0;
-    const components: NavalComponent[] = (parsed.components || []).slice(0, 4).map((c: any, ci: number) => {
-        const byStride: Record<string, any> = {};
-        (c.cells || []).forEach((cell: any) => { byStride[cell.stride] = cell; });
-        const cells: NavalCell[] = STRIDE_CATEGORIES.map((s) => {
-            const cell = byStride[s] || { stride: s, hasThreat: false, motivo: 'Sem ameaça relevante.' };
-            if (cell.hasThreat) totalThreats++;
-            return {
-                stride: s,
-                hasThreat: !!cell.hasThreat,
-                titulo: cell.titulo,
-                descricao: cell.descricao,
-                severidade: cell.severidade,
-                owasp: cell.owasp,
-                cwe: cell.cwe,
-                motivo: cell.motivo,
-            };
-        });
-        return { id: `C${ci + 1}`, name: c.name || `Componente ${ci + 1}`, cells };
-    });
-
-    return { theme: parsed.theme || tema, components, totalThreats };
+    const questions: RushQuestion[] = (parsed.questions || []).filter(
+        (q: any) => q && q.scenario && STRIDE_CATEGORIES.includes(q.stride)
+    );
+    if (questions.length === 0) throw new Error('No valid rush questions generated.');
+    return questions;
 };

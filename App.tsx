@@ -10,7 +10,7 @@ import DecisionScreen from './components/DecisionScreen';
 import GamecardDisplay from './components/GamecardDisplay';
 import SecurityCardsDisplay from './components/SecurityCardsDisplay';
 import RoomGame from './components/RoomGame';
-import NavalGame from './components/NavalGame';
+import RushGame from './components/RushGame';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 
@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const [v2Multiplayer, setV2Multiplayer] = useState(false);
   const [roomJoin, setRoomJoin] = useState(false);
   const [roomJoinCode, setRoomJoinCode] = useState('');
-  const [naval, setNaval] = useState(false);
+  const [rush, setRush] = useState(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
@@ -290,7 +290,7 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
   const handlePlayAgain = () => {
     // Reset all state to initial values
     setAppMode(null);
-    setNaval(false);
+    setRush(false);
     setGameState(GameState.SETUP);
     setError(null);
     setV1Multiplayer(false);
@@ -364,23 +364,23 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
         </div>
 
         <div
-          onClick={() => setNaval(true)}
-          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-cyan-500 cursor-pointer transition-all duration-300 transform hover:scale-105 relative"
+          onClick={() => setRush(true)}
+          className="p-8 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-amber-500 cursor-pointer transition-all duration-300 transform hover:scale-105 relative"
         >
-          <div className="absolute -top-2 -right-2 bg-cyan-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+          <div className="absolute -top-2 -right-2 bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full">
             JOGO
           </div>
-          <div className="text-4xl mb-4">🚢</div>
-          <h3 className="text-xl font-bold text-slate-100 mb-3">Carcará Naval</h3>
+          <div className="text-4xl mb-4">⚡</div>
+          <h3 className="text-xl font-bold text-slate-100 mb-3">Carcará Rush</h3>
           <p className="text-slate-300 text-sm mb-4">
-            Caça-ameaças no estilo batalha naval. A IA esconde ameaças numa matriz STRIDE
-            e você as encontra acertando as células certas. Treino divertido de modelagem.
+            Quiz arcade de STRIDE contra o relógio. Classifique a ameaça na categoria certa,
+            faça combos e bata seu recorde. Treino rápido e viciante.
           </p>
           <ul className="text-xs text-slate-400 text-left space-y-1">
-            <li>• Tabuleiro Componente × STRIDE</li>
+            <li>• Cronômetro + combo + 3 vidas</li>
             <li>• Cenários gerados por tema</li>
-            <li>• Pontos por severidade + precisão</li>
-            <li>• Feedback educativo a cada tiro</li>
+            <li>• Dificuldade que escala</li>
+            <li>• Explicação a cada resposta</li>
           </ul>
         </div>
       </div>
@@ -414,8 +414,8 @@ ${selectedCards.map((card, i) => `${i+1}. ${card.card_id} - ASP: ${card.asp_scor
       if (roomJoin) {
         return <RoomGame onExit={handlePlayAgain} initialJoinCode={roomJoinCode} />;
       }
-      if (naval) {
-        return <NavalGame onExit={handlePlayAgain} />;
+      if (rush) {
+        return <RushGame onExit={handlePlayAgain} />;
       }
       return renderModeSelection();
     }

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'http';
-import { generateThreatOptions, analyzeThreats, generateSecurityCards, generateNavalBoard } from './services';
+import { generateThreatOptions, analyzeThreats, generateSecurityCards, generateRushQuestions } from './services';
 import { attachRoomServer } from './rooms/roomServer';
 import { V2AnalysisRequest } from './types';
 
@@ -78,15 +78,15 @@ app.post('/api/v2/generate-security-cards', async (req: Request, res: Response) 
   }
 });
 
-// Carcará Naval — gera um tabuleiro STRIDE (jogo de treino solo)
-app.post('/api/naval/new-game', async (req: Request, res: Response) => {
-  const { theme } = req.body || {};
+// Carcará Rush — gera um lote de perguntas do quiz STRIDE
+app.post('/api/rush/questions', async (req: Request, res: Response) => {
+  const { theme, count } = req.body || {};
   try {
-    const board = await generateNavalBoard(theme || '');
-    res.json(board);
+    const questions = await generateRushQuestions(theme || '', count || 10);
+    res.json({ questions });
   } catch (error) {
-    console.error('Error generating naval board:', error);
-    res.status(500).json({ error: 'An error occurred while generating the naval board' });
+    console.error('Error generating rush questions:', error);
+    res.status(500).json({ error: 'An error occurred while generating rush questions' });
   }
 });
 
